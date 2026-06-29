@@ -4,71 +4,82 @@ on:
   schedule:
     - cron: '0 0 * * 0'
 
+permissions:
+  contents: write
+
 jobs:
   fetch:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Download games from Drive
         run: |
           mkdir -p games
           
-          declare -A GAMES
-          GAMES["チャージ一閃.html"]="14KYa9hTN2oyS3HR9z5Sjfp4LG2e1LSmb"
-          GAMES["連鎖割り雪崩（Chain Pop Avalanche）.html"]="1Gs6HhLxbFafe3EpGziYlOi9fZ_3OTJ3c"
-          GAMES["カラーホールドトラップ.html"]="1HHT5AssPEvon1u1TGW4wF7YlURLrC4hn"
-          GAMES["連鎖落とし4目ローグ（チェイン・ドロップ・ローグ）.html"]="1H5cvwtGUJmxc6Bnt4v4Ago24WW3uSZUC"
-          GAMES["元素連鎖反応（Element Chain Reaction）.html"]="1BABhOb_g-6eM4ju3hgMWU4QHkA4LGfvw"
-          GAMES["グラビティ・テンウェル.html"]="1h64QbYZbpb-FJu7nhVPwDrPgxrqh0eXU"
-          GAMES["ダイスチャージ・ダンジョン.html"]="1dL7VXhbCQgW7akHh7FOqXgxw27voUwfW"
-          GAMES["カタカナしりとりソリティア.html"]="12JHtn5wBMYn660p1iVbfrT6G7ycPDRlc"
-          GAMES["連鎖暴走方程式.html"]="17jM4nP16344eWYYoBluxJj88XOVwNJKn"
-          GAMES["コンボシュート.html"]="1cu4rZVCIctlqB5R4MTtTBVsmw4kLYrQ2"
-          GAMES["崩落ドミノ連鎖.html"]="1vg18Md7CKZdAwbP4Luox8U_yG-Ou8np8"
-          GAMES["磁力4方向4連.html"]="1J-x80ybKvDKTSxNyXTkY3L8YnnYTkcZr"
-          GAMES["クリスタルレゾナンス（Crystal Resonance）.html"]="1xnLo0BcxqTEOvX5hA6YzVWXpMLPIeNWf"
-          GAMES["花火大輪（HanabiBloom）.html"]="1bsojLsGphPsr0YxHCx0KHu6vND0eym2c"
-          GAMES["★バースト連鎖リバーシ.html"]="1F89LMbWKTIfBZV_qFf8bdDvpqszDF1-1"
-          GAMES["磁力ホバー（Magnetic Hover 2048）.html"]="1deliSkKHB6hg4xBung1jNYdwTSCtY9bn"
-          GAMES["方向連鎖パズル.html"]="1qPNkcIPnkXjTSsxTA6rrp6Q7shrGF0UM"
-          GAMES["紐引きアローソート.html"]="1dwUL2mKAUhpl30V9ZdHppqrt3UJsp_Vq"
-          GAMES["紐引きチェーンパズル（ChainArrow）.html"]="18FfyZPgOyF2ljOFKdbrgGOK8qfHXX8_D"
-          GAMES["グラビティスマッシュ (GravitySmash).html"]="12enkKulJE_Y1upa3Ha8LpGNEX-WXBkXp"
-          GAMES["恐竜卵ソート（孵化演出）.html"]="1y4x4P2c_8fMz6oeRyalb09rsbDu0R0sJ"
-          GAMES["トリックライン・ワンスワイプ.html"]="1Y55KnWWX1QPO0i0QQoQBIvQaY6UURcy9"
-          GAMES["ワープ連鎖ソート.html"]="1o6VweScOhfFM_ccYhZzQrGgvWTN9zf7Z"
-          GAMES["灯台の光集約（Lighthouse Convergence）.html"]="115v9QjPqFsX3ag9OfgsGqigh0JwaLbsA"
-          GAMES["Arrow Sort Frozen Chain.html"]="10GovG-yD0QkjlLx6PsmKPu_HanW4in1v"
-          GAMES["ドラッグ・マージライン（Drag Merge Line）.html"]="1e1w3faoXnQSG18DyarafoLnKQSI3w_RY"
-          GAMES["おとマシン.html"]="1SC5Q9wqgXsT3EgtuLpmKiY4zYl7N_VOl"
-          GAMES["チェーンパンチ道場.html"]="1YvOGwjH9yyfIYsK2YFrm5qaJNEyH5P1u"
-          GAMES["ネオン・ワンショット崩落（NeonOneShotCollapse）.html"]="17DmsANacI63bGGkiA-8X44JPMGF-MRd_"
-          GAMES["トレジャー・ロール（Treasure Roll）.html"]="1heYBW4lOiyPR1s-gb9qJtb6Wq6mavHXg"
-          GAMES["Drop 2048（ぽとぽと合体）.html"]="1ovJpAi8TWNDzSaazHHr-xKm0TV3daduz"
-          GAMES["破裂で飛ばす.html"]="1hBvtatfgWQAGquGC7Ahf6D79iarPL4HO"
-          GAMES["矢印スタックパズル.html"]="1QezaghKAgpq5LMf9RqUgSEi2Jn_VAXVZ"
-          GAMES["Arrow Sort Mirror Path.html"]="1UninfVKs9OFXs_mAS8ckz4Dp5q0A-KGw"
-          GAMES["氷滑りソート.html"]="1JVdmgzXAqzxB5JHMAKRM5FQgmrqJPiYq"
-          GAMES["重力ルートクラッシュ.html"]="1WgCuecAMDR7LP5Zjhde-lqDYpW-EReak"
-          GAMES["配線タワーディフェンス.html"]="1yBAFL-zR2KfDCBBoMk-ndT1wMtjk_-8J"
-          GAMES["カーサバイバー（Car Survivor）.html"]="1WsZ8lDACQXU0O_d7lfyAXhsByiO0788T"
-          GAMES["炎の連鎖滝（FlameChainFalls）.html"]="1vrMSMdKYOcm4plW1CmEi7N2ku1fK8mOq"
-          GAMES["矢印ドミノ.html"]="1Pf03Gw51-U8M5P8iDveUhrDDSXFVm4Bp"
+          download_game() {
+            local name="$1"
+            local id="$2"
+            echo "Downloading: $name"
+            # Try direct download first, follow redirects
+            curl -sL "https://drive.google.com/uc?export=download&id=${id}&confirm=t" \
+              -o "games/${name}" \
+              --max-time 30 || echo "FAILED: $name"
+          }
           
-          for name in "${!GAMES[@]}"; do
-            id="${GAMES[$name]}"
-            echo "Downloading: $name ($id)"
-            curl -sL "https://drive.google.com/uc?export=download&id=${id}" -o "games/${name}" || echo "FAILED: $name"
-            sleep 0.5
+          download_game "チャージ一閃.html" "14KYa9hTN2oyS3HR9z5Sjfp4LG2e1LSmb"
+          download_game "連鎖割り雪崩（Chain Pop Avalanche）.html" "1Gs6HhLxbFafe3EpGziYlOi9fZ_3OTJ3c"
+          download_game "カラーホールドトラップ.html" "1HHT5AssPEvon1u1TGW4wF7YlURLrC4hn"
+          download_game "連鎖落とし4目ローグ（チェイン・ドロップ・ローグ）.html" "1H5cvwtGUJmxc6Bnt4v4Ago24WW3uSZUC"
+          download_game "元素連鎖反応（Element Chain Reaction）.html" "1BABhOb_g-6eM4ju3hgMWU4QHkA4LGfvw"
+          download_game "グラビティ・テンウェル.html" "1h64QbYZbpb-FJu7nhVPwDrPgxrqh0eXU"
+          download_game "ダイスチャージ・ダンジョン.html" "1dL7VXhbCQgW7akHh7FOqXgxw27voUwfW"
+          download_game "カタカナしりとりソリティア.html" "12JHtn5wBMYn660p1iVbfrT6G7ycPDRlc"
+          download_game "連鎖暴走方程式.html" "17jM4nP16344eWYYoBluxJj88XOVwNJKn"
+          download_game "コンボシュート.html" "1cu4rZVCIctlqB5R4MTtTBVsmw4kLYrQ2"
+          download_game "崩落ドミノ連鎖.html" "1vg18Md7CKZdAwbP4Luox8U_yG-Ou8np8"
+          download_game "磁力4方向4連.html" "1J-x80ybKvDKTSxNyXTkY3L8YnnYTkcZr"
+          download_game "クリスタルレゾナンス（Crystal Resonance）.html" "1xnLo0BcxqTEOvX5hA6YzVWXpMLPIeNWf"
+          download_game "花火大輪（HanabiBloom）.html" "1bsojLsGphPsr0YxHCx0KHu6vND0eym2c"
+          download_game "★バースト連鎖リバーシ.html" "1F89LMbWKTIfBZV_qFf8bdDvpqszDF1-1"
+          download_game "磁力ホバー（Magnetic Hover 2048）.html" "1deliSkKHB6hg4xBung1jNYdwTSCtY9bn"
+          download_game "方向連鎖パズル.html" "1qPNkcIPnkXjTSsxTA6rrp6Q7shrGF0UM"
+          download_game "紐引きアローソート.html" "1dwUL2mKAUhpl30V9ZdHppqrt3UJsp_Vq"
+          download_game "紐引きチェーンパズル（ChainArrow）.html" "18FfyZPgOyF2ljOFKdbrgGOK8qfHXX8_D"
+          download_game "グラビティスマッシュ (GravitySmash).html" "12enkKulJE_Y1upa3Ha8LpGNEX-WXBkXp"
+          download_game "恐竜卵ソート（孵化演出）.html" "1y4x4P2c_8fMz6oeRyalb09rsbDu0R0sJ"
+          download_game "トリックライン・ワンスワイプ.html" "1Y55KnWWX1QPO0i0QQoQBIvQaY6UURcy9"
+          download_game "ワープ連鎖ソート.html" "1o6VweScOhfFM_ccYhZzQrGgvWTN9zf7Z"
+          download_game "灯台の光集約（Lighthouse Convergence）.html" "115v9QjPqFsX3ag9OfgsGqigh0JwaLbsA"
+          download_game "Arrow Sort Frozen Chain.html" "10GovG-yD0QkjlLx6PsmKPu_HanW4in1v"
+          download_game "ドラッグ・マージライン（Drag Merge Line）.html" "1e1w3faoXnQSG18DyarafoLnKQSI3w_RY"
+          download_game "おとマシン.html" "1SC5Q9wqgXsT3EgtuLpmKiY4zYl7N_VOl"
+          download_game "チェーンパンチ道場.html" "1YvOGwjH9yyfIYsK2YFrm5qaJNEyH5P1u"
+          download_game "ネオン・ワンショット崩落（NeonOneShotCollapse）.html" "17DmsANacI63bGGkiA-8X44JPMGF-MRd_"
+          download_game "トレジャー・ロール（Treasure Roll）.html" "1heYBW4lOiyPR1s-gb9qJtb6Wq6mavHXg"
+          download_game "Drop 2048（ぽとぽと合体）.html" "1ovJpAi8TWNDzSaazHHr-xKm0TV3daduz"
+          download_game "破裂で飛ばす.html" "1hBvtatfgWQAGquGC7Ahf6D79iarPL4HO"
+          download_game "矢印スタックパズル.html" "1QezaghKAgpq5LMf9RqUgSEi2Jn_VAXVZ"
+          download_game "Arrow Sort Mirror Path.html" "1UninfVKs9OFXs_mAS8ckz4Dp5q0A-KGw"
+          download_game "氷滑りソート.html" "1JVdmgzXAqzxB5JHMAKRM5FQgmrqJPiYq"
+          download_game "重力ルートクラッシュ.html" "1WgCuecAMDR7LP5Zjhde-lqDYpW-EReak"
+          download_game "配線タワーディフェンス.html" "1yBAFL-zR2KfDCBBoMk-ndT1wMtjk_-8J"
+          download_game "カーサバイバー（Car Survivor）.html" "1WsZ8lDACQXU0O_d7lfyAXhsByiO0788T"
+          download_game "炎の連鎖滝（FlameChainFalls）.html" "1vrMSMdKYOcm4plW1CmEi7N2ku1fK8mOq"
+          download_game "矢印ドミノ.html" "1Pf03Gw51-U8M5P8iDveUhrDDSXFVm4Bp"
+          
+          # Check what we got
+          echo "--- Downloaded files ---"
+          for f in games/*.html; do
+            echo "$(wc -c < "$f") bytes: $f"
           done
-          
-          ls -la games/
       
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add games/
-          git diff --staged --quiet || git commit -m "Auto-fetch: update game files from Drive"
+          git diff --staged --quiet || git commit -m "Auto-fetch: update game files from Drive [$(date -u +%Y-%m-%d)]"
           git push
