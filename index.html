@@ -10,24 +10,25 @@ body{font-family:'Helvetica Neue',system-ui,sans-serif;background:#0a0a0f;color:
 header{padding:20px 24px 16px;border-bottom:1px solid #1a1a2e;}
 header h1{font-size:18px;font-weight:600;color:#c8d0ff;letter-spacing:.04em;}
 header p{font-size:12px;color:#666;margin-top:4px;}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;padding:20px 24px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:12px;padding:20px 24px;}
 .card{background:#10101c;border:1px solid #1a1a2e;border-radius:10px;padding:14px 14px 12px;cursor:pointer;transition:border-color .15s,transform .1s;}
 .card:hover{border-color:#4040a0;transform:translateY(-2px);}
 .card .ico{font-size:22px;margin-bottom:8px;opacity:.7;}
-.card .nm{font-size:13px;font-weight:500;color:#dde;line-height:1.4;}
+.card .nm{font-size:12px;font-weight:500;color:#dde;line-height:1.4;}
 .card .sz{font-size:11px;color:#556;margin-top:4px;}
-.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;align-items:center;justify-content:center;}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:100;align-items:center;justify-content:center;}
 .modal-bg.open{display:flex;}
-.modal{background:#0d0d18;border:1px solid #2a2a50;border-radius:14px;width:94vw;max-width:740px;height:90vh;display:flex;flex-direction:column;overflow:hidden;}
-.mhead{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #1a1a2e;flex-shrink:0;}
-.mtitle{flex:1;font-size:14px;font-weight:500;color:#dde;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.mclose,.mnew{background:none;border:1px solid #2a2a50;border-radius:7px;padding:5px 12px;font-size:12px;cursor:pointer;color:#888;text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
+.modal{background:#0d0d18;border:1px solid #2a2a50;border-radius:14px;width:96vw;max-width:480px;height:92vh;display:flex;flex-direction:column;overflow:hidden;}
+.mhead{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #1a1a2e;flex-shrink:0;}
+.mtitle{flex:1;font-size:13px;font-weight:500;color:#dde;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mclose,.mnew{background:none;border:1px solid #2a2a50;border-radius:7px;padding:5px 10px;font-size:12px;cursor:pointer;color:#888;text-decoration:none;display:inline-flex;align-items:center;gap:3px;white-space:nowrap;}
 .mclose:hover,.mnew:hover{background:#1a1a2e;color:#ccc;}
-iframe{flex:1;border:none;width:100%;}
+iframe{flex:1;border:none;width:100%;background:#000;}
 .search{margin:16px 24px 0;position:relative;}
 .search input{width:100%;padding:9px 14px;font-size:14px;background:#10101c;border:1px solid #1a1a2e;border-radius:8px;color:#dde;outline:none;}
 .search input:focus{border-color:#4040a0;}
 .count{font-size:12px;color:#556;margin:10px 24px 0;}
+.note{font-size:11px;color:#444;padding:8px 24px;border-top:1px solid #111;margin-top:auto;}
 </style>
 </head>
 <body>
@@ -43,8 +44,8 @@ iframe{flex:1;border:none;width:100%;}
   <div class="modal">
     <div class="mhead">
       <span class="mtitle" id="mt"></span>
-      <a class="mnew" id="ml" href="#" target="_blank">↗ New tab</a>
-      <button class="mclose" onclick="closeModal()">✕ Close</button>
+      <a class="mnew" id="ml" href="#" target="_blank">↗ 別タブ</a>
+      <button class="mclose" onclick="closeModal()">✕</button>
     </div>
     <iframe id="gf" src="" allow="autoplay"></iframe>
   </div>
@@ -52,55 +53,56 @@ iframe{flex:1;border:none;width:100%;}
 
 <script>
 const ICONS = ['🎯','⚡','🔥','❄','💎','🏆','🌀','🎲','🔮','🧩','🎪','🚀','🌊','🎭','💥'];
+const BASE = 'games/';
 const GAMES = [
-  {id:"14KYa9hTN2oyS3HR9z5Sjfp4LG2e1LSmb",name:"チャージ一閃",kb:22},
-  {id:"1Gs6HhLxbFafe3EpGziYlOi9fZ_3OTJ3c",name:"連鎖割り雪崩（Chain Pop Avalanche）",kb:32},
-  {id:"1HHT5AssPEvon1u1TGW4wF7YlURLrC4hn",name:"カラーホールドトラップ",kb:31},
-  {id:"1H5cvwtGUJmxc6Bnt4v4Ago24WW3uSZUC",name:"連鎖落とし4目ローグ（チェイン・ドロップ・ローグ）",kb:28},
-  {id:"1BABhOb_g-6eM4ju3hgMWU4QHkA4LGfvw",name:"元素連鎖反応（Element Chain Reaction）",kb:26},
-  {id:"1h64QbYZbpb-FJu7nhVPwDrPgxrqh0eXU",name:"グラビティ・テンウェル",kb:45},
-  {id:"1dL7VXhbCQgW7akHh7FOqXgxw27voUwfW",name:"ダイスチャージ・ダンジョン",kb:55},
-  {id:"12JHtn5wBMYn660p1iVbfrT6G7ycPDRlc",name:"カタカナしりとりソリティア",kb:32},
-  {id:"17jM4nP16344eWYYoBluxJj88XOVwNJKn",name:"連鎖暴走方程式",kb:48},
-  {id:"1cu4rZVCIctlqB5R4MTtTBVsmw4kLYrQ2",name:"コンボシュート",kb:32},
-  {id:"1vg18Md7CKZdAwbP4Luox8U_yG-Ou8np8",name:"崩落ドミノ連鎖",kb:21},
-  {id:"1J-x80ybKvDKTSxNyXTkY3L8YnnYTkcZr",name:"磁力4方向4連",kb:27},
-  {id:"1xnLo0BcxqTEOvX5hA6YzVWXpMLPIeNWf",name:"クリスタルレゾナンス（Crystal Resonance）",kb:22},
-  {id:"1bsojLsGphPsr0YxHCx0KHu6vND0eym2c",name:"花火大輪（HanabiBloom）",kb:32},
-  {id:"1F89LMbWKTIfBZV_qFf8bdDvpqszDF1-1",name:"★バースト連鎖リバーシ",kb:43},
-  {id:"1deliSkKHB6hg4xBung1jNYdwTSCtY9bn",name:"磁力ホバー（Magnetic Hover 2048）",kb:39},
-  {id:"1qPNkcIPnkXjTSsxTA6rrp6Q7shrGF0UM",name:"方向連鎖パズル",kb:19},
-  {id:"1dwUL2mKAUhpl30V9ZdHppqrt3UJsp_Vq",name:"紐引きアローソート",kb:52},
-  {id:"18FfyZPgOyF2ljOFKdbrgGOK8qfHXX8_D",name:"紐引きチェーンパズル（ChainArrow）",kb:32},
-  {id:"12enkKulJE_Y1upa3Ha8LpGNEX-WXBkXp",name:"グラビティスマッシュ (GravitySmash)",kb:55},
-  {id:"1y4x4P2c_8fMz6oeRyalb09rsbDu0R0sJ",name:"恐竜卵ソート（孵化演出）",kb:36},
-  {id:"1Y55KnWWX1QPO0i0QQoQBIvQaY6UURcy9",name:"トリックライン・ワンスワイプ",kb:39},
-  {id:"1o6VweScOhfFM_ccYhZzQrGgvWTN9zf7Z",name:"ワープ連鎖ソート",kb:25},
-  {id:"115v9QjPqFsX3ag9OfgsGqigh0JwaLbsA",name:"灯台の光集約（Lighthouse Convergence）",kb:45},
-  {id:"10GovG-yD0QkjlLx6PsmKPu_HanW4in1v",name:"Arrow Sort Frozen Chain",kb:25},
-  {id:"1e1w3faoXnQSG18DyarafoLnKQSI3w_RY",name:"ドラッグ・マージライン（Drag Merge Line）",kb:24},
-  {id:"1SC5Q9wqgXsT3EgtuLpmKiY4zYl7N_VOl",name:"おとマシン",kb:32},
-  {id:"1YvOGwjH9yyfIYsK2YFrm5qaJNEyH5P1u",name:"チェーンパンチ道場",kb:37},
-  {id:"17DmsANacI63bGGkiA-8X44JPMGF-MRd_",name:"ネオン・ワンショット崩落（NeonOneShotCollapse）",kb:34},
-  {id:"1heYBW4lOiyPR1s-gb9qJtb6Wq6mavHXg",name:"トレジャー・ロール（Treasure Roll）",kb:38},
-  {id:"1ovJpAi8TWNDzSaazHHr-xKm0TV3daduz",name:"Drop 2048（ぽとぽと合体）",kb:29},
-  {id:"1hBvtatfgWQAGquGC7Ahf6D79iarPL4HO",name:"破裂で飛ばす",kb:23},
-  {id:"1QezaghKAgpq5LMf9RqUgSEi2Jn_VAXVZ",name:"矢印スタックパズル",kb:70},
-  {id:"1UninfVKs9OFXs_mAS8ckz4Dp5q0A-KGw",name:"Arrow Sort Mirror Path",kb:22},
-  {id:"1JVdmgzXAqzxB5JHMAKRM5FQgmrqJPiYq",name:"氷滑りソート",kb:25},
-  {id:"1WgCuecAMDR7LP5Zjhde-lqDYpW-EReak",name:"重力ルートクラッシュ",kb:35},
-  {id:"1yBAFL-zR2KfDCBBoMk-ndT1wMtjk_-8J",name:"配線タワーディフェンス",kb:81},
-  {id:"1WsZ8lDACQXU0O_d7lfyAXhsByiO0788T",name:"カーサバイバー（Car Survivor）",kb:63},
-  {id:"1vrMSMdKYOcm4plW1CmEi7N2ku1fK8mOq",name:"炎の連鎖滝（FlameChainFalls）",kb:19},
-  {id:"1Pf03Gw51-U8M5P8iDveUhrDDSXFVm4Bp",name:"矢印ドミノ",kb:23},
+  {file:"チャージ一閃.html",name:"チャージ一閃",kb:22},
+  {file:"連鎖割り雪崩（Chain Pop Avalanche）.html",name:"連鎖割り雪崩",kb:32},
+  {file:"カラーホールドトラップ.html",name:"カラーホールドトラップ",kb:31},
+  {file:"連鎖落とし4目ローグ（チェイン・ドロップ・ローグ）.html",name:"連鎖落とし4目ローグ",kb:28},
+  {file:"元素連鎖反応（Element Chain Reaction）.html",name:"元素連鎖反応",kb:26},
+  {file:"グラビティ・テンウェル.html",name:"グラビティ・テンウェル",kb:45},
+  {file:"ダイスチャージ・ダンジョン.html",name:"ダイスチャージ・ダンジョン",kb:55},
+  {file:"カタカナしりとりソリティア.html",name:"カタカナしりとりソリティア",kb:32},
+  {file:"連鎖暴走方程式.html",name:"連鎖暴走方程式",kb:48},
+  {file:"コンボシュート.html",name:"コンボシュート",kb:32},
+  {file:"崩落ドミノ連鎖.html",name:"崩落ドミノ連鎖",kb:21},
+  {file:"磁力4方向4連.html",name:"磁力4方向4連",kb:27},
+  {file:"クリスタルレゾナンス（Crystal Resonance）.html",name:"クリスタルレゾナンス",kb:22},
+  {file:"花火大輪（HanabiBloom）.html",name:"花火大輪",kb:32},
+  {file:"★バースト連鎖リバーシ.html",name:"★バースト連鎖リバーシ",kb:43},
+  {file:"磁力ホバー（Magnetic Hover 2048）.html",name:"磁力ホバー",kb:39},
+  {file:"方向連鎖パズル.html",name:"方向連鎖パズル",kb:19},
+  {file:"紐引きアローソート.html",name:"紐引きアローソート",kb:52},
+  {file:"紐引きチェーンパズル（ChainArrow）.html",name:"紐引きチェーンパズル",kb:32},
+  {file:"グラビティスマッシュ (GravitySmash).html",name:"グラビティスマッシュ",kb:55},
+  {file:"恐竜卵ソート（孵化演出）.html",name:"恐竜卵ソート",kb:36},
+  {file:"トリックライン・ワンスワイプ.html",name:"トリックライン・ワンスワイプ",kb:39},
+  {file:"ワープ連鎖ソート.html",name:"ワープ連鎖ソート",kb:25},
+  {file:"灯台の光集約（Lighthouse Convergence）.html",name:"灯台の光集約",kb:45},
+  {file:"Arrow Sort Frozen Chain.html",name:"Arrow Sort Frozen Chain",kb:25},
+  {file:"ドラッグ・マージライン（Drag Merge Line）.html",name:"ドラッグ・マージライン",kb:24},
+  {file:"おとマシン.html",name:"おとマシン",kb:32},
+  {file:"チェーンパンチ道場.html",name:"チェーンパンチ道場",kb:37},
+  {file:"ネオン・ワンショット崩落（NeonOneShotCollapse）.html",name:"ネオン・ワンショット崩落",kb:34},
+  {file:"トレジャー・ロール（Treasure Roll）.html",name:"トレジャー・ロール",kb:38},
+  {file:"Drop 2048（ぽとぽと合体）.html",name:"Drop 2048",kb:29},
+  {file:"破裂で飛ばす.html",name:"破裂で飛ばす",kb:23},
+  {file:"矢印スタックパズル.html",name:"矢印スタックパズル",kb:70},
+  {file:"Arrow Sort Mirror Path.html",name:"Arrow Sort Mirror Path",kb:22},
+  {file:"氷滑りソート.html",name:"氷滑りソート",kb:25},
+  {file:"重力ルートクラッシュ.html",name:"重力ルートクラッシュ",kb:35},
+  {file:"配線タワーディフェンス.html",name:"配線タワーディフェンス",kb:81},
+  {file:"カーサバイバー（Car Survivor）.html",name:"カーサバイバー",kb:63},
+  {file:"炎の連鎖滝（FlameChainFalls）.html",name:"炎の連鎖滝",kb:19},
+  {file:"矢印ドミノ.html",name:"矢印ドミノ",kb:23},
 ];
 
 let shown = [...GAMES];
 
 function openGame(g) {
   document.getElementById('mt').textContent = g.name;
-  document.getElementById('gf').src = `https://drive.google.com/file/d/${g.id}/preview`;
-  document.getElementById('ml').href = `https://drive.google.com/file/d/${g.id}/view`;
+  document.getElementById('gf').src = BASE + encodeURIComponent(g.file);
+  document.getElementById('ml').href = BASE + encodeURIComponent(g.file);
   document.getElementById('mb').classList.add('open');
 }
 function closeModal() {
