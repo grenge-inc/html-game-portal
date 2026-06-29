@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<!--
+  Phone frame template for hybrid-casual-mentor generated games.
+  Aspect ratio: 9:19.5 (iPhone X 系縦長, NEONNOVA2048 基準)。
+  PC で開いても常にこの比率を保ち、letterbox（左右黒帯）で中央表示。
+  すべてのゲーム要素は #phone の子として配置すること。
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>図鑑竜の召喚録</title>
+<style>
+  :root {
+    --phone-aspect: 9 / 19.5;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html, body {
+    width:100%; height:100%;
+    overflow:hidden;
+    background:#000;
+    color:#fff;
+    font-family:'Helvetica Neue', system-ui, sans-serif;
+    user-select:none;
+    -webkit-user-select:none;
+    -webkit-tap-highlight-color:transparent;
+    touch-action:none;
+  }
+  body {
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  #phone {
+    position:relative;
+    overflow:hidden;
+    width:  min(100vw, calc(100vh * 9 / 19.5));
+    height: min(100vh, calc(100vw * 19.5 / 9));
+    --pw:   min(100vw, calc(100vh * 9 / 19.5));
+    --ph:   min(100vh, calc(100vw * 19.5 / 9));
+    --u:    calc(var(--pw) / 100);
+    --uh:   calc(var(--ph) / 100);
+    background:#0a0024;
+  }
+
+  /* ===== カラートークン ===== */
+  :root{
+    --c-deep:#0c0420; --c-mid:#1d0b3e; --c-panel:#150830; --c-line:#5a3a96;
+    --c-glow:#7b4fd6;
+    --gold:#ffd76b; --gold-soft:#ffe9a8; --gold-deep:#c8901f;
+    --magic:#b585ff; --magic-soft:#d9c2ff; --magic-deep:#6a32c4;
+    --txt:#f6f0ff; --txt-dim:#b9a3e0;
+    /* 6ティア色 */
+    --t1:#7fe1ff; --t2:#9affc8; --t3:#ffb24a; --t4:#ff7af0; --t5:#ff4f4f; --t6:#ffd700;
+    --rare:#ff7af0;
+    --paper:#efe2c4; --paper-2:#e3d3ad; --ink:#3a2410;
+  }
+
+  /* ===== レイアウト ===== */
+  #phone{
+    background:
+      radial-gradient(120% 80% at 50% -10%, #2a1556 0%, rgba(42,21,86,0) 55%),
+      radial-gradient(90% 60% at 50% 110%, #1a0a3e 0%, rgba(26,10,62,0) 60%),
+      linear-gradient(#0c0420, #05010f);
+    font-size:calc(var(--u)*3.4);
+  }
+  #stars{ position:absolute; inset:0; z-index:1; pointer-events:none; opacity:.7; }
+  #hud{
+    position:absolute; top:0; left:0; width:100%; height:9.5%;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 calc(var(--u)*5); z-index:20;
+    background:linear-gradient(rgba(20,8,46,.85),rgba(20,8,46,0));
+  }
+  .hud-box{ text-align:center; min-width:22%; }
+  .hud-lbl{ font-size:calc(var(--u)*2.5); color:var(--txt-dim); letter-spacing:.12em; text-transform:uppercase; }
+  .hud-val{
+    font-size:calc(var(--u)*4.4); font-weight:700;
+    background:linear-gradient(var(--gold-soft),var(--gold-deep));
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    text-shadow:0 0 calc(var(--u)*1.4) rgba(255,215,107,.4);
+  }
+  #goal{
+    background:linear-gradient(var(--magic-soft),var(--magic-deep));
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+
+  /* ===== 盤面 ===== */
+  #board-wrap{
+    position:absolute; top:10%; left:50%; transform:translateX(-50%);
+    width:92%; height:58%;
+  }
+  #board{
+    position:relative; width:100%; height:100%; z-index:5;
+    display:grid; grid-template-columns:repeat(6,1fr); grid-template-rows:repeat(8,1fr);
+    gap:calc(var(--u)*0.8);
+    background:
+      radial-gradient(80% 70% at 50% 40%, rgba(123,79,214,.18), rgba(20,8,46,.55));
+    border:2px solid var(--c-line); border-radius:calc(var(--u)*3.5);
+    padding:calc(var(--u)*1.4);
+    box-shadow:0 0 calc(var(--u)*3) rgba(123,79,214,.5),
+               inset 0 0 calc(var(--u)*4) rgba(11,4,30,.7);
+  }
+  .cell{
+    position:relative; border-radius:calc(var(--u)*2);
+    background:rgba(90,58,150,.14);
+    box-shadow:inset 0 0 0 1px rgba(123,79,214,.18);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .cell.fog{
+    background:repeating-linear-gradient(45deg,rgba(150,150,175,.5),rgba(150,150,175,.5) 6px,rgba(110,110,140,.5) 6px,rgba(110,110,140,.5) 12px);
+  }
+  .cell.hl{ box-shadow:inset 0 0 0 2px var(--gold), 0 0 calc(var(--u)*1.5) rgba(255,215,107,.5); background:rgba(255,215,107,.2); }
+  /* ドロップ可能（スワップ可）なセルのハイライト */
+  .cell.hl-swap{ box-shadow:inset 0 0 0 2px var(--magic), 0 0 calc(var(--u)*1.5) rgba(181,133,255,.5); background:rgba(181,133,255,.15); }
+  .obj{
+    position:absolute; width:84%; height:84%; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:calc(var(--u)*3.8); font-weight:700; color:#0a0420;
+    cursor:grab; transition:left .12s, top .12s; touch-action:none;
+    box-shadow:0 calc(var(--u)*0.6) calc(var(--u)*1.4) rgba(0,0,0,.5),
+               inset 0 calc(var(--u)*-1) calc(var(--u)*1.6) rgba(0,0,0,.25),
+               inset 0 calc(var(--u)*1) calc(var(--u)*1.6) rgba(255,255,255,.45);
+  }
+  .obj::after{
+    content:''; position:absolute; top:14%; left:20%; width:34%; height:26%;
+    border-radius:50%; background:rgba(255,255,255,.65); filter:blur(calc(var(--u)*0.6));
+  }
+  .obj.dragging{ cursor:grabbing; z-index:30; transition:none; }
+
+  /* 6ティア グラデーション */
+  .obj.t1{ background:radial-gradient(circle at 35% 28%,#eafdff,var(--t1) 70%,#2aa0c8); }
+  .obj.t2{ background:radial-gradient(circle at 35% 28%,#f0fff7,var(--t2) 70%,#2faf72); }
+  .obj.t3{ background:radial-gradient(circle at 35% 28%,#fff4e0,var(--t3) 70%,#c8701a);
+           box-shadow:0 0 calc(var(--u)*2) rgba(255,178,74,.7),0 calc(var(--u)*0.6) calc(var(--u)*1.4) rgba(0,0,0,.5),inset 0 calc(var(--u)*1) calc(var(--u)*1.6) rgba(255,255,255,.5); }
+  .obj.t4{ background:radial-gradient(circle at 35% 28%,#fff0ff,var(--t4) 70%,#b030c0);
+           box-shadow:0 0 calc(var(--u)*2.5) rgba(255,122,240,.8),0 calc(var(--u)*0.6) calc(var(--u)*1.4) rgba(0,0,0,.5),inset 0 calc(var(--u)*1) calc(var(--u)*1.6) rgba(255,255,255,.5); }
+  .obj.t5{ background:radial-gradient(circle at 35% 28%,#fff5f5,var(--t5) 70%,#a00000);
+           box-shadow:0 0 calc(var(--u)*3) rgba(255,79,79,.9),0 calc(var(--u)*0.6) calc(var(--u)*1.4) rgba(0,0,0,.5),inset 0 calc(var(--u)*1) calc(var(--u)*1.6) rgba(255,255,255,.5);
+           animation:pulset5 2s ease-in-out infinite; }
+  .obj.t6{ background:radial-gradient(circle at 35% 28%,#fffff0,var(--t6) 70%,#a07000);
+           box-shadow:0 0 calc(var(--u)*4) rgba(255,215,0,1),0 0 calc(var(--u)*7) rgba(255,215,0,.5),inset 0 calc(var(--u)*1) calc(var(--u)*1.6) rgba(255,255,255,.6);
+           animation:pulset6 1.5s ease-in-out infinite; }
+  @keyframes pulset5{ 0%,100%{box-shadow:0 0 calc(var(--u)*2.5) rgba(255,79,79,.7)} 50%{box-shadow:0 0 calc(var(--u)*5) rgba(255,79,79,1),0 0 calc(var(--u)*7) rgba(255,79,79,.5)} }
+  @keyframes pulset6{ 0%,100%{box-shadow:0 0 calc(var(--u)*4) rgba(255,215,0,.9)} 50%{box-shadow:0 0 calc(var(--u)*8) rgba(255,215,0,1),0 0 calc(var(--u)*12) rgba(255,215,0,.6)} }
+  .obj.rare{ animation:rarepulse 1.4s ease-in-out infinite; }
+  @keyframes rarepulse{ 0%,100%{box-shadow:0 0 calc(var(--u)*1.6) var(--rare)} 50%{box-shadow:0 0 calc(var(--u)*4) var(--rare),0 0 calc(var(--u)*6) var(--rare)} }
+
+  /* ===== スポーンエフェクト ===== */
+  @keyframes spawnPop{
+    0%  { transform:scale(0) rotate(-20deg); opacity:0; }
+    60% { transform:scale(1.25) rotate(6deg); opacity:1; }
+    100%{ transform:scale(1)   rotate(0deg);  opacity:1; }
+  }
+  .obj.spawn-anim{
+    animation:spawnPop .35s cubic-bezier(.34,1.56,.64,1) forwards;
+  }
+
+  /* ===== ラッキーバナー ===== */
+  #lucky-banner{
+    position:absolute; top:70%; left:50%; transform:translateX(-50%);
+    z-index:55; pointer-events:none; white-space:nowrap;
+    font-size:calc(var(--u)*4.5); font-weight:700;
+    color:#fff; text-shadow:0 0 calc(var(--u)*3) var(--gold), 0 0 calc(var(--u)*6) var(--magic);
+    opacity:0;
+  }
+  #lucky-banner.show{
+    animation:luckyPop 1.8s ease-out forwards;
+  }
+  @keyframes luckyPop{
+    0%  { opacity:0; transform:translateX(-50%) scale(.5) translateY(10%); }
+    20% { opacity:1; transform:translateX(-50%) scale(1.15) translateY(0); }
+    70% { opacity:1; transform:translateX(-50%) scale(1) translateY(0); }
+    100%{ opacity:0; transform:translateX(-50%) scale(.9) translateY(-20%); }
+  }
+
+  /* ===== 図鑑 ===== */
+  #codex{
+    position:absolute; bottom:0; left:0; width:100%; height:22%; z-index:15;
+    padding:calc(var(--u)*2.4) calc(var(--u)*3.5) calc(var(--u)*3);
+    background:linear-gradient(var(--paper),var(--paper-2));
+    border-top:calc(var(--u)*0.8) solid var(--gold-deep);
+    box-shadow:0 calc(var(--u)*-1) calc(var(--u)*3) rgba(0,0,0,.6),
+               inset 0 calc(var(--u)*2) calc(var(--u)*3) rgba(255,255,255,.4);
+    border-top-left-radius:calc(var(--u)*2); border-top-right-radius:calc(var(--u)*2);
+  }
+  #codex::before{
+    content:''; position:absolute; top:0; left:50%; width:calc(var(--u)*1); height:100%;
+    transform:translateX(-50%);
+    background:linear-gradient(rgba(120,80,20,.35),rgba(120,80,20,.05));
+  }
+  #codex-title{
+    font-size:calc(var(--u)*3.1); color:var(--ink); margin-bottom:calc(var(--u)*1.8);
+    text-align:center; letter-spacing:.1em; font-weight:700;
+    font-family:'Georgia','Times New Roman',serif;
+  }
+  #skills{ display:flex; gap:calc(var(--u)*1.2); }
+  .skill{
+    flex:1; text-align:center; padding:calc(var(--u)*1.2) 0;
+    border:1px solid rgba(120,80,20,.35); border-radius:calc(var(--u)*1.6);
+    background:rgba(255,255,255,.25); color:rgba(58,36,16,.45);
+    font-size:calc(var(--u)*2.0); line-height:1.3; transition:all .4s;
+  }
+  .skill.on{
+    color:var(--ink); border-color:var(--gold-deep);
+    background:linear-gradient(rgba(255,231,160,.9),rgba(255,210,110,.7));
+    box-shadow:0 0 calc(var(--u)*2) rgba(200,144,31,.6); font-weight:700;
+    animation:pageturn .6s ease-out;
+  }
+  @keyframes pageturn{ 0%{transform:rotateY(-80deg);opacity:0} 100%{transform:rotateY(0);opacity:1} }
+  .skill .sn{ font-size:calc(var(--u)*2.8); display:block; filter:grayscale(.6); }
+  .skill.on .sn{ filter:none; color:var(--gold-deep); }
+
+  /* ===== 演出 ===== */
+  .beam{
+    position:absolute; z-index:40; pointer-events:none;
+    width:calc(var(--u)*6); height:calc(var(--u)*6); border-radius:50%;
+    background:radial-gradient(circle,#fff 10%,var(--gold) 45%,rgba(181,133,255,.6) 80%);
+    box-shadow:0 0 calc(var(--u)*3) var(--gold),0 0 calc(var(--u)*6) var(--magic);
+    transition:left .65s cubic-bezier(.5,0,.9,.5), top .65s cubic-bezier(.5,0,.9,.5), transform .65s, opacity .65s;
+  }
+  .beam.spin{ animation:swirl .65s linear; }
+  @keyframes swirl{ from{transform:rotate(0) scale(1.4)} to{transform:rotate(540deg) scale(.2)} }
+  .spark{
+    position:absolute; z-index:41; pointer-events:none;
+    width:calc(var(--u)*1.4); height:calc(var(--u)*1.4); border-radius:50%;
+    background:radial-gradient(circle,#fff,var(--magic-soft));
+    box-shadow:0 0 calc(var(--u)*1.6) var(--magic);
+    transition:left .6s ease-in, top .6s ease-in, opacity .6s;
+  }
+  #summon{
+    position:absolute; z-index:50; top:28%; left:-30%;
+    font-size:calc(var(--u)*24); pointer-events:none; opacity:0;
+    filter:drop-shadow(0 0 calc(var(--u)*3) var(--gold)) drop-shadow(0 0 calc(var(--u)*6) var(--magic));
+  }
+  #summon.run{ animation:fly 2.6s ease-in-out forwards; }
+  @keyframes fly{ 0%{left:-30%;opacity:0;transform:scale(.5) rotate(-12deg)} 18%{opacity:1} 50%{transform:scale(1.35) rotate(6deg)} 82%{opacity:1} 100%{left:112%;opacity:0;transform:scale(.7) rotate(12deg)} }
+  #flash{
+    position:absolute; inset:0; z-index:45; pointer-events:none; opacity:0;
+    background:radial-gradient(circle at 50% 40%, #fff 0%, var(--gold) 25%, var(--magic) 55%, rgba(12,4,32,0) 80%);
+  }
+  #flash.run{ animation:fl 1.8s ease-out forwards; }
+  @keyframes fl{ 0%{opacity:0;transform:scale(.4)} 18%{opacity:.95;transform:scale(1)} 100%{opacity:0;transform:scale(1.4)} }
+
+  /* ===== モーダル ===== */
+  .modal{
+    position:absolute; inset:0; z-index:60; display:none;
+    align-items:center; justify-content:center; flex-direction:column;
+    background:radial-gradient(circle at 50% 40%, rgba(42,21,86,.92), rgba(8,3,20,.95));
+    text-align:center; padding:0 calc(var(--u)*10);
+  }
+  .modal.show{ display:flex; animation:fadein .4s ease-out; }
+  @keyframes fadein{ from{opacity:0} to{opacity:1} }
+  .modal h1{
+    font-size:calc(var(--u)*7.5); margin-bottom:calc(var(--u)*2.5); font-weight:700;
+    background:linear-gradient(var(--gold-soft),var(--gold-deep));
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    text-shadow:0 0 calc(var(--u)*3) rgba(255,215,107,.5);
+  }
+  .modal p{ font-size:calc(var(--u)*3.4); color:var(--txt); margin-bottom:calc(var(--u)*5); line-height:1.6; }
+  /* クリア統計表示 */
+  #clear-stats{
+    font-size:calc(var(--u)*4.2); font-weight:700; color:var(--gold);
+    margin-bottom:calc(var(--u)*3);
+    text-shadow:0 0 calc(var(--u)*2) rgba(255,215,107,.6);
+  }
+  .btn{
+    font-size:calc(var(--u)*4); padding:calc(var(--u)*2.4) calc(var(--u)*8);
+    border:2px solid var(--gold); border-radius:calc(var(--u)*6);
+    background:linear-gradient(var(--magic),var(--magic-deep)); color:var(--gold-soft);
+    cursor:pointer; font-weight:700;
+    box-shadow:0 0 calc(var(--u)*2) var(--magic),inset 0 calc(var(--u)*1) calc(var(--u)*1) rgba(255,255,255,.3);
+  }
+  .btn:active{ transform:scale(.96); }
+
+  /* ===== ティア図鑑バー ===== */
+  #tier-bar{
+    position:absolute; top:10%; left:50%; transform:translateX(-50%);
+    width:92%; height:auto; z-index:18;
+    display:flex; gap:calc(var(--u)*1.2); justify-content:center;
+    padding-bottom:calc(var(--u)*0.8);
+  }
+  .tier-pip{
+    width:calc(var(--u)*7); height:calc(var(--u)*7); border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:calc(var(--u)*3.2);
+    opacity:0.3; transition:opacity .4s, transform .3s;
+    box-shadow:0 0 0 1px rgba(255,255,255,.15);
+  }
+  .tier-pip.seen{
+    opacity:1; transform:scale(1.12);
+    box-shadow:0 0 calc(var(--u)*2.5) rgba(255,215,107,.7);
+  }
+  .tier-pip.t1{ background:radial-gradient(circle at 35% 28%,#eafdff,var(--t1)); }
+  .tier-pip.t2{ background:radial-gradient(circle at 35% 28%,#f0fff7,var(--t2)); }
+  .tier-pip.t3{ background:radial-gradient(circle at 35% 28%,#fff4e0,var(--t3)); }
+  .tier-pip.t4{ background:radial-gradient(circle at 35% 28%,#fff0ff,var(--t4)); }
+  .tier-pip.t5{ background:radial-gradient(circle at 35% 28%,#fff5f5,var(--t5)); }
+  .tier-pip.t6{ background:radial-gradient(circle at 35% 28%,#fffff0,var(--t6)); }
+</style>
+</head>
+<body>
+  <div id="phone">
+    <svg id="stars" viewBox="0 0 100 217" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="hud">
+      <div class="hud-box"><div class="hud-lbl">ステージ</div><div class="hud-val" id="stnum">1</div></div>
+      <div class="hud-box"><div class="hud-lbl">図鑑登録</div><div class="hud-val" id="reg">0</div></div>
+      <div class="hud-box"><div class="hud-lbl">目標</div><div class="hud-val" id="goal">幼竜 1</div></div>
+    </div>
+
+    <!-- ティア進化バー（6段階表示） -->
+    <div id="tier-bar">
+      <div class="tier-pip t1" id="pip1">🥚</div>
+      <div class="tier-pip t2" id="pip2">🐣</div>
+      <div class="tier-pip t3" id="pip3">🐲</div>
+      <div class="tier-pip t4" id="pip4">🦄</div>
+      <div class="tier-pip t5" id="pip5">🔥</div>
+      <div class="tier-pip t6" id="pip6">🐉</div>
+    </div>
+
+    <div id="board-wrap"><div id="board"></div></div>
+
+    <div id="codex">
+      <div id="codex-title">📖 図鑑 ─ 召喚録</div>
+      <div id="skills">
+        <div class="skill" id="sk1"><span class="sn">✦</span>レア昇格</div>
+        <div class="skill" id="sk2"><span class="sn">✦</span>高速湧き</div>
+        <div class="skill" id="sk3"><span class="sn">✦</span>自動合成</div>
+        <div class="skill" id="sk4"><span class="sn">✦</span>浄化</div>
+        <div class="skill" id="sk5"><span class="sn">✦</span>神竜召喚</div>
+      </div>
+    </div>
+
+    <div id="summon">🐉</div>
+    <div id="flash"></div>
+    <div id="lucky-banner">✨ ラッキー！</div>
+
+    <div class="modal" id="clear">
+      <h1 id="clear-h">ステージクリア！</h1>
+      <p id="clear-p">図鑑が新たな竜を記録した。</p>
+      <div id="clear-stats"></div>
+      <button class="btn" id="next-btn">次へ ▶</button>
+    </div>
+  </div>
+  <script>
+  (function(){
+    const COLS=6, ROWS=8;
+    // 6ティア定義
+    const ICON={1:'🥚',2:'🐣',3:'🐲',4:'🦄',5:'🔥',6:'🐉'};
+    const TIER_NAME={1:'精霊の卵',2:'幼精霊',3:'召喚竜',4:'天馬竜',5:'炎神竜',6:'神竜王'};
+    const boardEl=document.getElementById('board');
+    const regEl=document.getElementById('reg');
+    const stnumEl=document.getElementById('stnum');
+    const goalEl=document.getElementById('goal');
+
+    let cells=[];
+    let grid=[];
+    let objs=new Map();
+    let stage=1, topTier=2, registered=0, goalCount=1, cleared=false;
+    let rareUp=false, autoMerge=false, purify=false, godSummon=false, fastSpawn=false;
+    let spawnTimer=null, autoTimer=null;
+    let seenTiers=new Set();
+
+    // ===== タイム計測 & マージ回数 =====
+    let gameStartTime=null;   // 最初の操作でセット
+    let mergeCount=0;         // マージ成立回数
+
+    function ensureTimerStarted(){
+      if(gameStartTime===null) gameStartTime=Date.now();
+    }
+
+    // ===== ラッキースポーン確率テーブル =====
+    const SPAWN_TABLE_NORMAL = [
+      {tier:1, w:70},
+      {tier:2, w:15},
+      {tier:3, w:10},
+      {tier:4, w:3},
+      {tier:5, w:2},
+    ];
+    const SPAWN_TABLE_FAST = [
+      {tier:1, w:60},
+      {tier:2, w:20},
+      {tier:3, w:12},
+      {tier:4, w:5},
+      {tier:5, w:3},
+    ];
+
+    function pickSpawnTier(){
+      const table = fastSpawn ? SPAWN_TABLE_FAST : SPAWN_TABLE_NORMAL;
+      const filtered = table.filter(e=>e.tier < topTier || topTier===6);
+      const total = filtered.reduce((s,e)=>s+e.w, 0);
+      let rnd = Math.random() * total;
+      for(const e of filtered){
+        rnd -= e.w;
+        if(rnd <= 0) return e.tier;
+      }
+      return 1;
+    }
+
+    // ステージ定義（5ステージ / 初期配置は種オブジェクトのみ）
+    const STAGES=[
+      null,
+      {topTier:2, goalCount:1, goalText:'幼精霊 1',
+       init:(place)=>{ place(1,3,1); place(2,3,1); place(3,4,1); }},
+      {topTier:3, goalCount:1, goalText:'召喚竜 1',
+       init:(place)=>{ place(0,1,1); place(1,1,1); place(3,1,1); }},
+      {topTier:4, goalCount:1, goalText:'天馬竜 1',
+       init:(place)=>{ place(0,0,1);place(1,0,1);place(3,0,1); }},
+      {topTier:5, goalCount:1, goalText:'炎神竜 1',
+       init:(place)=>{ place(0,0,1);place(1,0,1);place(3,0,1); }},
+      {topTier:6, goalCount:1, goalText:'神竜王 1',
+       init:(place)=>{ place(0,0,1);place(1,0,1);place(3,0,1); }},
+    ];
+
+    const key=(c,r)=>c+','+r;
+
+    function buildBoard(){
+      boardEl.innerHTML='';
+      cells=[];
+      for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+        const d=document.createElement('div');
+        d.className='cell'; d.dataset.c=c; d.dataset.r=r;
+        boardEl.appendChild(d); cells[r*COLS+c]=d;
+      }
+    }
+    function cellAt(c,r){ return cells[r*COLS+c]; }
+
+    function placeObj(c,r,tier,rare){
+      grid[r*COLS+c]=tier;
+      const el=document.createElement('div');
+      el.className='obj t'+tier+(rare?' rare':'');
+      el.textContent=ICON[tier];
+      el.style.left='8%'; el.style.top='8%';
+      cellAt(c,r).appendChild(el);
+      const o={el,tier,c,r,rare:!!rare};
+      objs.set(key(c,r),o);
+      attachDrag(o);
+      markTierSeen(tier);
+      return o;
+    }
+    function removeObj(c,r){
+      const o=objs.get(key(c,r)); if(!o)return;
+      o.el.remove(); objs.delete(key(c,r)); grid[r*COLS+c]=0;
+    }
+    function moveObj(o,nc,nr){
+      objs.delete(key(o.c,o.r)); grid[o.r*COLS+o.c]=0;
+      o.c=nc; o.r=nr; objs.set(key(nc,nr),o); grid[nr*COLS+nc]=o.tier;
+      cellAt(nc,nr).appendChild(o.el);
+      o.el.style.left='8%'; o.el.style.top='8%';
+    }
+
+    function emptyCells(){
+      const out=[];
+      for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)
+        if(grid[r*COLS+c]===0) out.push([c,r]);
+      return out;
+    }
+
+    /* ---- ティア図鑑バー更新 ---- */
+    function markTierSeen(tier){
+      if(seenTiers.has(tier))return;
+      seenTiers.add(tier);
+      const pip=document.getElementById('pip'+tier);
+      if(pip)pip.classList.add('seen');
+    }
+
+    /* ---- マージ判定：同ティアの連結グループ ---- */
+    function findGroup(c,r){
+      const t=grid[r*COLS+c]; if(t<=0)return[];
+      const seen=new Set([key(c,r)]), stack=[[c,r]], g=[[c,r]];
+      while(stack.length){
+        const [cc,rr]=stack.pop();
+        for(const [dc,dr] of [[1,0],[-1,0],[0,1],[0,-1]]){
+          const nc=cc+dc,nr=rr+dr;
+          if(nc<0||nc>=COLS||nr<0||nr>=ROWS)continue;
+          if(grid[nr*COLS+nc]===t && !seen.has(key(nc,nr))){
+            seen.add(key(nc,nr)); stack.push([nc,nr]); g.push([nc,nr]);
+          }
+        }
+      }
+      return g;
+    }
+
+    /* ---- マージ解決（3個以上で上位へ進化。余りは盤面に残す）---- */
+    // 仕様: 3個→上位1体, 4個→上位1体(余り1個), 5個→上位2体, 6個→上位2体, 7個→上位2体(余り1個)
+    // 生成個数ルール: total>=5 なら2体、それ以外(3〜4)は1体
+    // 余り: total - produceCount * 3
+    function resolveMerge(c,r){
+      const g=findGroup(c,r);
+      if(g.length<3) return false;
+      const t=grid[r*COLS+c];
+
+      // 上位オブジェクト生成数: 5個以上なら2体、3〜4個なら1体（Merge Dragons! 準拠）
+      const total=g.length;
+      const produceCount = total >= 5 ? 2 : 1;
+      // 余りのオブジェクト数（盤面に残す同ティア）
+      const remainder = total - produceCount * 3;
+
+      // マージ回数インクリメント（1回のresolveMergeで+1）
+      mergeCount++;
+
+      // 全グループ削除
+      g.forEach(([gc,gr])=>removeObj(gc,gr));
+
+      const nt=t+1;
+
+      // 余りがある場合は先に余りのオブジェクトを戻す
+      const remainSlots=[];
+      for(let i=0;i<remainder;i++){
+        const slot=g[g.length-1-i]||g[0];
+        remainSlots.push(slot);
+      }
+      remainSlots.forEach(([rc2,rr2])=>{
+        let tc=rc2, tr=rr2;
+        if(grid[tr*COLS+tc]!==0){
+          const e=emptyCells(); if(e.length){[tc,tr]=e[0];}else return;
+        }
+        const o2=placeObj(tc,tr,t,false);
+        o2.el.classList.add('spawn-anim');
+        setTimeout(()=>o2.el.classList.remove('spawn-anim'),400);
+      });
+
+      // 上位オブジェクト生成
+      const spawnedSlots=[];
+      for(let i=0;i<produceCount;i++){
+        const slot=g[i]||g[0];
+        let produceTier=nt;
+        let rare=false;
+        if(rareUp && nt<topTier && Math.random()<0.35){ produceTier=nt+1; rare=true; }
+        const placed=spawnUpper(slot[0],slot[1],produceTier,rare);
+        if(placed) spawnedSlots.push(placed);
+      }
+
+      // 生成後に上位オブジェクトの連鎖マージチェック（2個以上生成された場合や既存の上位と隣接している場合）
+      // 少し遅延させてDOMとgridが安定してから判定
+      if(spawnedSlots.length>0){
+        setTimeout(()=>{
+          if(cleared) return;
+          spawnedSlots.forEach(([sc2,sr2])=>{
+            if(grid[sr2*COLS+sc2]>0){
+              resolveMerge(sc2,sr2);
+            }
+          });
+        }, 80);
+      }
+
+      return true;
+    }
+
+    // spawnUpper: 上位オブジェクトを配置し、配置した座標を返す（連鎖チェック用）
+    function spawnUpper(c,r,tier,rare){
+      let [tc,tr]=[c,r];
+      if(grid[tr*COLS+tc]!==0){
+        const e=emptyCells(); if(e.length){[tc,tr]=e[0];} else return null;
+      }
+      const o=placeObj(tc,tr,tier,rare);
+      o.el.classList.add('spawn-anim');
+      setTimeout(()=>o.el.classList.remove('spawn-anim'),400);
+      markTierSeen(tier);
+      if(tier>=topTier){
+        absorbEffect(tc,tr,tier,o);
+      }
+      return [tc,tr];
+    }
+
+    /* ---- 自動スポーン（1秒間隔 / ゲーム開始直後から常時動作）---- */
+    function startSpawnTimer(){
+      if(spawnTimer)return;
+      const interval = fastSpawn ? 500 : 1000;
+      spawnTimer=setInterval(()=>{
+        if(cleared)return;
+        const e=emptyCells();
+        if(!e.length)return;
+        const [c,r]=e[Math.floor(Math.random()*e.length)];
+        const tier=pickSpawnTier();
+        const isLucky=(tier>=2);
+        const o=placeObj(c,r,tier,false);
+        o.el.classList.add('spawn-anim');
+        setTimeout(()=>o.el.classList.remove('spawn-anim'),400);
+        if(isLucky) showLuckyBanner(tier);
+        if(autoMerge){
+          setTimeout(()=>{ if(!cleared) resolveMerge(c,r); }, 300);
+        }
+      }, fastSpawn ? 500 : 1000);
+    }
+
+    function restartSpawnTimer(){
+      clearInterval(spawnTimer); spawnTimer=null;
+      startSpawnTimer();
+    }
+
+    /* ---- ラッキーバナー ---- */
+    function showLuckyBanner(tier){
+      const b=document.getElementById('lucky-banner');
+      const labels={2:'🐣 幼精霊ラッキー！',3:'🐲 召喚竜ラッキー！！',4:'🦄 天馬竜ラッキー！！！',5:'🔥 炎神竜ラッキー！！！！'};
+      b.textContent=labels[tier]||'✨ ラッキー！';
+      b.classList.remove('show');
+      void b.offsetWidth;
+      b.classList.add('show');
+      setTimeout(()=>b.classList.remove('show'),1900);
+    }
+
+    /* ---- 図鑑吸収エフェクト ---- */
+    function absorbEffect(c,r,tier,o){
+      const cell=cellAt(c,r);
+      const phone=document.getElementById('phone');
+      const pr=phone.getBoundingClientRect();
+      const cr=cell.getBoundingClientRect();
+      const sx=(cr.left-pr.left+cr.width/2)/pr.width*100;
+      const sy=(cr.top-pr.top+cr.height/2)/pr.height*100;
+      const beam=document.createElement('div');
+      beam.className='beam spin';
+      beam.style.left=sx+'%'; beam.style.top=sy+'%';
+      phone.appendChild(beam);
+      requestAnimationFrame(()=>{
+        beam.style.left='50%'; beam.style.top='89%';
+        beam.style.opacity='0.15';
+      });
+      setTimeout(()=>beam.remove(),700);
+      for(let i=0;i<7;i++){
+        const sp=document.createElement('div'); sp.className='spark';
+        const ang=Math.random()*6.28, rad=4+Math.random()*5;
+        sp.style.left=(sx+Math.cos(ang)*rad)+'%';
+        sp.style.top=(sy+Math.sin(ang)*rad)+'%';
+        phone.appendChild(sp);
+        const d=i*40;
+        setTimeout(()=>{ sp.style.left='50%'; sp.style.top='89%'; sp.style.opacity='0'; },d+20);
+        setTimeout(()=>sp.remove(),d+700);
+      }
+      registered++; regEl.textContent=registered;
+      updateSkills();
+      if(tier>=5) summonCutscene();
+      if(tier>=6){ document.getElementById('flash').classList.remove('run'); void document.getElementById('flash').offsetWidth; document.getElementById('flash').classList.add('run'); summonCutscene(); }
+      checkClear();
+    }
+
+    function summonCutscene(){
+      const s=document.getElementById('summon');
+      s.classList.remove('run'); void s.offsetWidth; s.classList.add('run');
+    }
+
+    /* ---- 図鑑段階スキル（5段階）---- */
+    function updateSkills(){
+      if(registered>=1 && !rareUp){ rareUp=true; document.getElementById('sk1').classList.add('on'); }
+      if(registered>=2 && !fastSpawn){ fastSpawn=true; document.getElementById('sk2').classList.add('on'); restartSpawnTimer(); }
+      if(registered>=3 && !autoMerge){ autoMerge=true; document.getElementById('sk3').classList.add('on'); startAutoMerge(); }
+      if(registered>=4 && !purify){ purify=true; document.getElementById('sk4').classList.add('on'); doPurify(); }
+      if(registered>=5 && !godSummon){ godSummon=true; document.getElementById('sk5').classList.add('on'); }
+    }
+
+    function startAutoMerge(){
+      if(autoTimer)return;
+      autoTimer=setInterval(()=>{
+        if(cleared)return;
+        for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+          if(grid[r*COLS+c]>0 && findGroup(c,r).length>=3){
+            resolveMerge(c,r); return;
+          }
+        }
+      },1400);
+    }
+    function doPurify(){
+      for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)
+        if(grid[r*COLS+c]===-1){ grid[r*COLS+c]=0; cellAt(c,r).classList.remove('fog'); }
+    }
+
+    /* ---- ドラッグ操作（pointer のみ / スワップ対応）---- */
+    let drag=null;
+    function attachDrag(o){
+      o.el.addEventListener('pointerdown',e=>{
+        if(cleared)return;
+        e.preventDefault();
+        ensureTimerStarted(); // 最初の操作でタイマー開始
+        drag={o, startX:e.clientX, startY:e.clientY};
+        o.el.classList.add('dragging');
+        o.el.setPointerCapture(e.pointerId);
+        highlightAll(true, o);
+      });
+      o.el.addEventListener('pointermove',e=>{
+        if(!drag||drag.o!==o)return;
+        const dx=e.clientX-drag.startX, dy=e.clientY-drag.startY;
+        o.el.style.transform='translate('+dx+'px,'+dy+'px)';
+      });
+      o.el.addEventListener('pointerup',e=>{
+        if(!drag||drag.o!==o)return;
+        o.el.style.transform='';
+        o.el.classList.remove('dragging');
+        highlightAll(false, o);
+
+        const boardRect=boardEl.getBoundingClientRect();
+        const relX=e.clientX-boardRect.left;
+        const relY=e.clientY-boardRect.top;
+        const cw=boardRect.width/COLS;
+        const ch=boardRect.height/ROWS;
+        const nc=Math.floor(relX/cw);
+        const nr=Math.floor(relY/ch);
+
+        if(nc>=0&&nc<COLS&&nr>=0&&nr<ROWS && !(nc===o.c&&nr===o.r)){
+          const destTier=grid[nr*COLS+nc];
+          if(destTier===0){
+            // 空きマスへ通常移動
+            moveObj(o,nc,nr);
+            resolveMerge(nc,nr);
+          } else {
+            // 占有マスへのドロップ → スワップ
+            swapObjs(o, nc, nr);
+          }
+        }
+        drag=null;
+      });
+      o.el.addEventListener('pointercancel',()=>{
+        if(drag){
+          drag.o.el.style.transform='';
+          drag.o.el.classList.remove('dragging');
+          highlightAll(false, drag.o);
+          drag=null;
+        }
+      });
+    }
+
+    /* ---- グループに隣接する空きマスを探す ---- */
+    function findAdjacentEmpty(group){
+      // グループの全座標の上下左右を調べ、空きマスを返す（見つからなければ null）
+      const gSet=new Set(group.map(([c,r])=>key(c,r)));
+      for(const [gc,gr] of group){
+        for(const [dc,dr] of [[1,0],[-1,0],[0,1],[0,-1]]){
+          const nc=gc+dc, nr=gr+dr;
+          if(nc<0||nc>=COLS||nr<0||nr>=ROWS)continue;
+          if(grid[nr*COLS+nc]===0 && !gSet.has(key(nc,nr))) return [nc,nr];
+        }
+      }
+      return null;
+    }
+
+    /* ---- スワップ処理 ---- */
+    function swapObjs(srcObj, dc, dr){
+      const dstObj=objs.get(key(dc,dr));
+      if(!dstObj)return;
+
+      const sc=srcObj.c, sr=srcObj.r;
+
+      // 同種オブジェクトへのドロップ → グループ追加マージ
+      // srcObj の元位置 (sc,sr) を解放し、ドロップ先グループに隣接する空きマスへ
+      // srcObj を移動することで N+1 個グループを形成し resolveMerge に渡す
+      if(srcObj.tier === dstObj.tier){
+        // ドロップ先グループを取得
+        const grp=findGroup(dc,dr);
+
+        // 先に srcObj の元位置を解放することで、元位置もグループ隣接の空きマス候補に入れる
+        objs.delete(key(sc,sr));
+        grid[sr*COLS+sc]=0;
+        srcObj.el.remove(); // DOM から一旦外す（見つからない場合に復元）
+
+        // グループに隣接する空きマスを探す（srcObj元位置解放済みなので候補に含まれる）
+        const target=findAdjacentEmpty(grp);
+
+        // 見つからなければ srcObj を元位置に戻してフォールバックスワップ
+        if(!target){
+          // srcObj は既に grid/objs から削除済みなので、直接ドロップ先と入れ替える
+          // srcObj → (dc,dr)、dstObj → (sc,sr)
+          objs.delete(key(dc,dr));
+          grid[dr*COLS+dc]=srcObj.tier;
+          srcObj.c=dc; srcObj.r=dr;
+          objs.set(key(dc,dr),srcObj);
+          cellAt(dc,dr).appendChild(srcObj.el);
+          srcObj.el.style.left='8%'; srcObj.el.style.top='8%';
+          grid[sr*COLS+sc]=dstObj.tier;
+          dstObj.c=sc; dstObj.r=sr;
+          objs.set(key(sc,sr),dstObj);
+          cellAt(sc,sr).appendChild(dstObj.el);
+          dstObj.el.style.left='8%'; dstObj.el.style.top='8%';
+          let merged=false;
+          if(resolveMerge(dc,dr)) merged=true;
+          if(!merged && grid[sr*COLS+sc]>0) resolveMerge(sc,sr);
+          return;
+        }
+
+        // srcObj を target へ配置
+        const [tc,tr]=target;
+        srcObj.c=tc; srcObj.r=tr;
+        objs.set(key(tc,tr),srcObj);
+        grid[tr*COLS+tc]=srcObj.tier;
+        cellAt(tc,tr).appendChild(srcObj.el);
+        srcObj.el.style.left='8%'; srcObj.el.style.top='8%';
+
+        // tc,tr でマージ判定（グループ全体 N + srcObj 1個 = N+1 個として判定）
+        resolveMerge(tc,tr);
+        return;
+      }
+
+      // 異種オブジェクトへのドロップ → 通常スワップ（位置を入れ替え）
+      // grid更新
+      grid[sr*COLS+sc]=dstObj.tier;
+      grid[dr*COLS+dc]=srcObj.tier;
+
+      // objs マップ更新
+      objs.delete(key(sc,sr));
+      objs.delete(key(dc,dr));
+      srcObj.c=dc; srcObj.r=dr;
+      dstObj.c=sc; dstObj.r=sr;
+      objs.set(key(dc,dr),srcObj);
+      objs.set(key(sc,sr),dstObj);
+
+      // DOM更新
+      cellAt(sc,sr).appendChild(dstObj.el);
+      dstObj.el.style.left='8%'; dstObj.el.style.top='8%';
+      cellAt(dc,dr).appendChild(srcObj.el);
+      srcObj.el.style.left='8%'; srcObj.el.style.top='8%';
+
+      // スワップ後にマージ判定（両方の位置でチェック）
+      let merged=false;
+      if(resolveMerge(dc,dr)) merged=true;
+      if(!merged && grid[sr*COLS+sc]>0) resolveMerge(sc,sr);
+    }
+
+    /* ---- 全セルハイライト（空きマス + スワップ可能なマス）---- */
+    function highlightAll(on, srcObj){
+      for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+        const cell=cellAt(c,r);
+        cell.classList.remove('hl','hl-swap');
+        if(!on) continue;
+        if(srcObj && c===srcObj.c && r===srcObj.r) continue; // 自分自身はスキップ
+        if(grid[r*COLS+c]===0){
+          cell.classList.add('hl');       // 空きマス（通常移動）
+        } else {
+          cell.classList.add('hl-swap');  // 占有マス（スワップ）
+        }
+      }
+    }
+
+    /* ---- クリア判定 ---- */
+    function checkClear(){
+      if(cleared)return;
+      if(registered>=goalCount){
+        cleared=true;
+        clearInterval(spawnTimer); clearInterval(autoTimer); spawnTimer=autoTimer=null;
+
+        // クリア統計計算
+        const elapsedSec = gameStartTime ? Math.round((Date.now()-gameStartTime)/1000) : 0;
+        const statsText = elapsedSec+'秒・マージ'+mergeCount+'回でクリア！';
+
+        const isLast=(stage===5);
+        const isBig=(stage>=4);
+        if(isBig){
+          const f=document.getElementById('flash');
+          f.classList.remove('run'); void f.offsetWidth; f.classList.add('run');
+          summonCutscene();
+        }
+        const MSGS=[
+          null,
+          {h:'幼精霊を記録！',  p:'コア体験完了。「レア昇格」スキルが解放された。'},
+          {h:'召喚竜を記録！',  p:'3段階マージ達成！「高速湧き」が解放された。'},
+          {h:'天馬竜を記録！',  p:'4段階の進化を完遂！「自動合成」が解放された。'},
+          {h:'炎神竜を記録！',  p:'5段階マージ！「浄化」スキルが盤面を清める。'},
+          {h:'神竜王を召喚！',  p:'全6段階マージを完遂！「神竜召喚」──最高の称号！'},
+        ];
+        const msg=MSGS[stage]||{h:'クリア！',p:''};
+        setTimeout(()=>{
+          const m=document.getElementById('clear');
+          document.getElementById('clear-h').textContent=msg.h;
+          document.getElementById('clear-p').textContent=msg.p;
+          document.getElementById('clear-stats').textContent=statsText;
+          document.getElementById('next-btn').textContent=isLast?'もう一度 ▶':'次へ ▶';
+          m.classList.add('show');
+        }, isBig?900:400);
+      }
+    }
+
+    /* ---- ステージ初期化 ---- */
+    function loadStage(n){
+      stage=n; cleared=false; registered=0; regEl.textContent=0;
+      rareUp=false; fastSpawn=false; autoMerge=false; purify=false; godSummon=false;
+      clearInterval(spawnTimer); clearInterval(autoTimer); spawnTimer=autoTimer=null;
+      ['sk1','sk2','sk3','sk4','sk5'].forEach(id=>document.getElementById(id).classList.remove('on'));
+      seenTiers=new Set();
+      [1,2,3,4,5,6].forEach(t=>{ const p=document.getElementById('pip'+t); if(p)p.classList.remove('seen'); });
+      objs=new Map(); grid=new Array(COLS*ROWS).fill(0);
+      buildBoard();
+      stnumEl.textContent=n;
+      document.getElementById('clear').classList.remove('show');
+
+      // タイム・マージカウントリセット
+      gameStartTime=null;
+      mergeCount=0;
+
+      const stDef=STAGES[n];
+      if(!stDef)return;
+      topTier=stDef.topTier;
+      goalCount=stDef.goalCount;
+      goalEl.textContent=stDef.goalText;
+      stDef.init(placeObj);
+
+      startSpawnTimer();
+    }
+
+    document.getElementById('next-btn').addEventListener('click',()=>{
+      loadStage(stage<5?stage+1:1);
+    });
+
+    // 環境演出：浮遊する魔法の光点
+    (function stars(){
+      const svg=document.getElementById('stars'); const ns='http://www.w3.org/2000/svg';
+      let s='';
+      for(let i=0;i<34;i++){
+        const x=Math.random()*100, y=Math.random()*217, rr=Math.random()*0.6+0.2;
+        const dur=(3+Math.random()*4).toFixed(1);
+        s+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+rr.toFixed(2)+'" fill="#d9c2ff">'
+          +'<animate attributeName="opacity" values="0.1;0.9;0.1" dur="'+dur+'s" repeatCount="indefinite" begin="'+(Math.random()*4).toFixed(1)+'s"/></circle>';
+      }
+      svg.innerHTML=s;
+    })();
+
+    loadStage(1);
+  })();
+  </script>
+</body>
+</html>
