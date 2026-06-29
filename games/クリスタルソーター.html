@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>しずく調香スタンド</title>
+<style>
+:root{
+  --phone-aspect:9/19.5;
+  --cafe-bg:#f5f0ea;
+  --cafe-blue:#b8c9d9;
+  --cafe-beige:#e8ddd0;
+  --cafe-text:#4a3f35;
+  --cafe-sub:#8a7b6e;
+  --glass-body:rgba(200,230,245,0.45);
+  --glass-border:rgba(160,210,235,0.7);
+  --crystal:#d6f0ff;
+  /* テーマカラー（ステージごとにJSで上書き） */
+  --theme-bg1:#f7f2ec;
+  --theme-bg2:#eee6da;
+  --theme-bg3:#dde8f0;
+  --theme-accent:#d4a0b0;
+  --theme-soda1:#c8e8f5;
+  --theme-soda2:#90c4d8;
+  --theme-soda-text:#3a6a80;
+  --theme-soda-sub:#5a8a9a;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{
+  width:100%;height:100%;
+  overflow:hidden;
+  background:#2a3040;
+  color:#4a3f35;
+  font-family:'Helvetica Neue',system-ui,sans-serif;
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:none;
+}
+body{position:relative;display:flex;align-items:center;justify-content:center;}
+#phone{
+  position:relative;overflow:hidden;
+  width:min(100vw,calc(100vh*9/19.5));
+  height:min(100vh,calc(100vw*19.5/9));
+  --pw:min(100vw,calc(100vh*9/19.5));
+  --ph:min(100vh,calc(100vw*19.5/9));
+  --u:calc(var(--pw)/100);
+  --uh:calc(var(--ph)/100);
+  background:var(--cafe-bg);
+}
+/* 背景装飾 */
+#bg{
+  position:absolute;inset:0;
+  background:linear-gradient(160deg,var(--theme-bg1) 0%,var(--theme-bg2) 40%,var(--theme-bg3) 100%);
+  z-index:0;
+  transition:background 0.6s;
+}
+#bg::before{
+  content:'';position:absolute;
+  top:calc(var(--uh)*10);left:calc(var(--u)*5);
+  width:calc(var(--u)*30);height:calc(var(--u)*30);
+  background:radial-gradient(circle,rgba(184,201,217,0.3) 0%,transparent 70%);
+  border-radius:50%;
+}
+#bg::after{
+  content:'';position:absolute;
+  bottom:calc(var(--uh)*20);right:calc(var(--u)*5);
+  width:calc(var(--u)*25);height:calc(var(--u)*25);
+  background:radial-gradient(circle,rgba(232,221,208,0.4) 0%,transparent 70%);
+  border-radius:50%;
+}
+/* ステージ表示 */
+#stage-hud{
+  position:absolute;top:calc(var(--uh)*2);left:0;right:0;
+  text-align:center;z-index:10;
+}
+#stage-hud .stage-label{
+  font-size:calc(var(--u)*3.2);
+  font-weight:700;color:var(--cafe-sub);
+  letter-spacing:0.05em;
+}
+/* ゴール色エリア */
+#goal-area{
+  position:absolute;
+  top:calc(var(--uh)*7);
+  left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;gap:calc(var(--u)*4);
+  z-index:10;
+}
+.goal-label{
+  font-size:calc(var(--u)*2.8);
+  color:var(--cafe-sub);font-weight:600;
+}
+#goal-glass{
+  width:calc(var(--u)*12);height:calc(var(--u)*18);
+  border-radius:calc(var(--u)*1.5) calc(var(--u)*1.5) calc(var(--u)*2.5) calc(var(--u)*2.5);
+  border:2px solid var(--glass-border);
+  background:var(--glass-body);
+  overflow:hidden;position:relative;
+}
+#goal-fill{
+  position:absolute;bottom:0;left:0;right:0;
+  height:75%;
+  border-radius:0 0 calc(var(--u)*2.5) calc(var(--u)*2.5);
+  transition:background-color 0.3s;
+}
+/* 目標ヒント（ソーダで割った後）ラベル */
+#goal-hint-label{
+  position:absolute;
+  top:calc(var(--uh)*5.5);
+  left:50%;transform:translateX(-50%);
+  font-size:calc(var(--u)*2.2);
+  color:var(--cafe-sub);
+  white-space:nowrap;
+  z-index:10;
+  opacity:0.85;
+}
+/* 色差ゲージ */
+#gauge-wrap{
+  position:absolute;
+  top:calc(var(--uh)*14);
+  left:calc(var(--u)*10);right:calc(var(--u)*10);
+  z-index:10;
+}
+.gauge-title{
+  font-size:calc(var(--u)*2.6);
+  color:var(--cafe-sub);margin-bottom:calc(var(--uh)*0.6);
+  text-align:center;
+}
+#gauge-bg{
+  height:calc(var(--uh)*1.6);
+  background:rgba(0,0,0,0.08);
+  border-radius:calc(var(--uh)*0.8);
+  overflow:hidden;
+  border:1px solid rgba(0,0,0,0.1);
+}
+#gauge-fill{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,var(--theme-accent),#90d4c0);
+  border-radius:inherit;
+  transition:width 0.2s,background-color 0.2s;
+}
+#gauge-pct{
+  text-align:right;
+  font-size:calc(var(--u)*2.8);
+  font-weight:700;color:var(--cafe-text);
+  margin-top:calc(var(--uh)*0.4);
+}
+/* メイングラス */
+#main-glass-wrap{
+  position:absolute;
+  top:calc(var(--uh)*19);
+  left:50%;transform:translateX(-50%);
+  z-index:10;
+}
+#main-glass{
+  width:calc(var(--u)*22);
+  height:calc(var(--u)*52);
+  border-radius:calc(var(--u)*2) calc(var(--u)*2) calc(var(--u)*4) calc(var(--u)*4);
+  border:2px solid var(--glass-border);
+  background:rgba(220,240,252,0.35);
+  overflow:hidden;position:relative;
+  box-shadow:inset 0 0 calc(var(--u)*3) rgba(255,255,255,0.4),0 calc(var(--u)*2) calc(var(--u)*6) rgba(100,150,180,0.2);
+}
+#liquid-fill{
+  position:absolute;bottom:0;left:0;right:0;
+  height:0%;
+  transition:height 0.3s,background-color 0.2s;
+  border-radius:0 0 calc(var(--u)*4) calc(var(--u)*4);
+}
+#bubble-canvas{
+  position:absolute;inset:0;pointer-events:none;
+}
+#overflow-flash{
+  position:absolute;inset:0;
+  background:rgba(255,80,80,0.4);
+  opacity:0;border-radius:inherit;
+  pointer-events:none;
+  transition:opacity 0.1s;
+}
+#crystal-shine{
+  position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.7) 0%,transparent 60%);
+  opacity:0;pointer-events:none;
+  transition:opacity 0.5s;
+  border-radius:inherit;
+}
+/* 液滴エフェクト */
+#drop-container{
+  position:absolute;top:0;left:0;right:0;bottom:0;
+  pointer-events:none;z-index:15;
+}
+/* ボトルエリア */
+#bottle-area{
+  position:absolute;
+  bottom:calc(var(--uh)*9);
+  left:0;right:0;
+  display:flex;justify-content:center;
+  align-items:flex-end;
+  gap:calc(var(--u)*4);
+  z-index:20;
+}
+.syrup-bottle{
+  display:flex;flex-direction:column;align-items:center;
+  cursor:pointer;
+  transition:transform 0.15s;
+}
+.syrup-bottle:active{transform:scale(0.92);}
+.bottle-body{
+  width:calc(var(--u)*10);height:calc(var(--u)*18);
+  border-radius:calc(var(--u)*2) calc(var(--u)*2) calc(var(--u)*3) calc(var(--u)*3);
+  border:2px solid rgba(255,255,255,0.5);
+  position:relative;overflow:hidden;
+  box-shadow:0 calc(var(--u)*2) calc(var(--u)*5) rgba(0,0,0,0.15);
+}
+.bottle-neck{
+  width:calc(var(--u)*4.5);height:calc(var(--u)*4.5);
+  border-radius:calc(var(--u)*1) calc(var(--u)*1) 0 0;
+  margin:0 auto;
+  border:2px solid rgba(255,255,255,0.5);
+  border-bottom:none;
+}
+.bottle-cap{
+  width:calc(var(--u)*5.5);height:calc(var(--u)*2.8);
+  border-radius:calc(var(--u)*0.8);
+  margin:0 auto;
+}
+.bottle-label{
+  font-size:calc(var(--u)*2.2);
+  font-weight:700;color:var(--cafe-text);
+  margin-top:calc(var(--uh)*0.6);
+  text-align:center;
+}
+.bottle-count{
+  font-size:calc(var(--u)*2);
+  color:var(--cafe-sub);
+}
+/* ソーダサーバー */
+#soda-wrap{
+  display:flex;flex-direction:column;align-items:center;
+  z-index:20;
+}
+#soda-btn{
+  width:calc(var(--u)*15);height:calc(var(--u)*20);
+  border-radius:calc(var(--u)*3);
+  background:linear-gradient(160deg,var(--theme-soda1),var(--theme-soda2));
+  border:2px solid rgba(255,255,255,0.6);
+  cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  box-shadow:0 calc(var(--u)*2) calc(var(--u)*6) rgba(100,170,210,0.3);
+  transition:transform 0.1s,box-shadow 0.1s,background 0.6s;
+  position:relative;overflow:hidden;
+}
+#soda-btn.pressing{
+  transform:scale(0.95);
+  box-shadow:0 calc(var(--u)*1) calc(var(--u)*3) rgba(100,170,210,0.2);
+}
+#soda-btn .soda-icon{
+  font-size:calc(var(--u)*7);line-height:1;
+}
+#soda-btn .soda-text{
+  font-size:calc(var(--u)*2.4);font-weight:700;
+  color:var(--theme-soda-text);margin-top:calc(var(--uh)*0.4);
+}
+#soda-btn .soda-sub{
+  font-size:calc(var(--u)*1.9);color:var(--theme-soda-sub);
+}
+#soda-level-bar{
+  position:absolute;bottom:0;left:0;right:0;
+  height:0%;
+  background:rgba(100,200,240,0.3);
+  transition:height 0.1s;
+  border-radius:0 0 calc(var(--u)*3) calc(var(--u)*3);
+}
+#soda-label{font-size:calc(var(--u)*2.2);color:var(--cafe-sub);margin-top:calc(var(--uh)*0.5);}
+/* 下部UI */
+#bottom-bar{
+  position:absolute;
+  bottom:calc(var(--uh)*1.5);
+  left:calc(var(--u)*5);right:calc(var(--u)*5);
+  display:flex;justify-content:space-between;align-items:center;
+  z-index:20;
+}
+#fill-meter{
+  font-size:calc(var(--u)*2.8);color:var(--cafe-sub);font-weight:600;
+}
+#drop-count{
+  font-size:calc(var(--u)*2.8);color:var(--cafe-text);font-weight:700;
+}
+/* オーバーフロー警告 */
+#overflow-warn{
+  position:absolute;
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  font-size:calc(var(--u)*5);font-weight:900;
+  color:#e04050;text-align:center;
+  opacity:0;z-index:30;pointer-events:none;
+  text-shadow:0 0 calc(var(--u)*3) rgba(220,60,80,0.6);
+  transition:opacity 0.2s;
+}
+/* モーダル */
+#modal{
+  position:absolute;inset:0;
+  background:rgba(250,245,238,0.92);
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  z-index:50;opacity:0;pointer-events:none;
+  transition:opacity 0.4s;
+}
+#modal.show{opacity:1;pointer-events:all;}
+#modal-title{
+  font-size:calc(var(--u)*7);font-weight:900;
+  color:var(--cafe-text);text-align:center;
+  line-height:1.2;margin-bottom:calc(var(--uh)*2);
+}
+#modal-perfect{
+  font-size:calc(var(--u)*4.5);font-weight:800;
+  color:#c06080;text-align:center;
+  margin-bottom:calc(var(--uh)*1.5);
+  letter-spacing:0.05em;opacity:0;
+  transition:opacity 0.5s 0.3s;
+}
+#modal-perfect.show{opacity:1;}
+#modal-score{
+  font-size:calc(var(--u)*3.5);color:var(--cafe-sub);
+  margin-bottom:calc(var(--uh)*3);text-align:center;
+}
+#modal-toppings{
+  display:flex;gap:calc(var(--u)*3);
+  margin-bottom:calc(var(--uh)*3);
+  font-size:calc(var(--u)*6);
+}
+#modal-btn{
+  padding:calc(var(--uh)*1.8) calc(var(--u)*10);
+  background:linear-gradient(135deg,var(--theme-accent),#90c0d8);
+  border:none;border-radius:calc(var(--u)*3);
+  font-size:calc(var(--u)*3.5);font-weight:700;
+  color:#fff;cursor:pointer;
+  box-shadow:0 calc(var(--u)*2) calc(var(--u)*5) rgba(180,120,140,0.3);
+  transition:transform 0.15s;
+}
+#modal-btn:active{transform:scale(0.95);}
+
+/* ============================================================
+   称号演出オーバーレイ（共通）
+   ============================================================ */
+#rank-overlay{
+  position:absolute;inset:0;
+  opacity:0;z-index:45;pointer-events:none;
+  transition:opacity 0.35s;
+}
+#rank-overlay.show{opacity:1;}
+
+/* パーティクルキャンバス（称号演出用） */
+#rank-canvas{
+  position:absolute;inset:0;
+  z-index:46;pointer-events:none;
+  opacity:0;
+  transition:opacity 0.3s;
+}
+#rank-canvas.show{opacity:1;}
+
+/* 称号テキスト共通ラッパー */
+#rank-text-wrap{
+  position:absolute;
+  top:34%;left:50%;transform:translate(-50%,-50%) scale(0.5);
+  text-align:center;
+  z-index:47;pointer-events:none;
+  opacity:0;
+  transition:opacity 0.45s,transform 0.45s cubic-bezier(0.17,0.89,0.32,1.28);
+  white-space:nowrap;
+}
+#rank-text-wrap.show{opacity:1;transform:translate(-50%,-50%) scale(1);}
+
+/* 称号 第1行（PERFECT / Sparkle / Aurora / Brilliant / Cute） */
+#rank-line1{
+  display:block;
+  line-height:1.1;
+  letter-spacing:0.04em;
+}
+/* 称号 第2行（CRYSTAL） */
+#rank-line2{
+  display:block;
+  font-size:calc(var(--u)*8);
+  font-weight:900;
+  letter-spacing:0.06em;
+  line-height:1.1;
+}
+
+/* ---- PERFECT CRYSTAL (98%+) ---- */
+#rank-text-wrap.rank-perfect #rank-line1{
+  font-size:calc(var(--u)*11);
+  font-weight:900;
+  background:linear-gradient(90deg,
+    #ff0080 0%,#ff6600 16%,#ffee00 33%,
+    #00ff88 50%,#00aaff 66%,#aa00ff 83%,#ff0080 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-size:200% auto;
+  animation:rainbowShift 1.5s linear infinite,
+            perfectPulse 0.8s ease-in-out infinite alternate;
+  filter:drop-shadow(0 0 calc(var(--u)*2) rgba(255,220,0,0.9))
+         drop-shadow(0 0 calc(var(--u)*5) rgba(255,100,200,0.7));
+}
+/* 「P」だけ特大 */
+#rank-text-wrap.rank-perfect #rank-line1 .initial{
+  font-size:1.45em;
+  display:inline-block;
+  background:linear-gradient(135deg,#ffee00,#ff8800,#ffdd00);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  animation:initialSpin 2s ease-in-out infinite alternate;
+  filter:drop-shadow(0 0 calc(var(--u)*4) gold)
+         drop-shadow(0 0 calc(var(--u)*8) rgba(255,200,0,1));
+}
+#rank-text-wrap.rank-perfect #rank-line2{
+  color:#ffe066;
+  text-shadow:0 0 calc(var(--u)*4) rgba(255,220,0,0.9),
+              0 0 calc(var(--u)*10) rgba(255,150,0,0.7);
+  animation:crystalGlow 1.2s ease-in-out infinite alternate;
+}
+
+/* ---- Sparkle!! (95-97%) ---- */
+#rank-text-wrap.rank-sparkle #rank-line1{
+  font-size:calc(var(--u)*9);
+  font-weight:700;
+  color:#c0d0e8;
+  text-shadow:0 0 calc(var(--u)*3) rgba(180,210,255,0.9),
+              0 0 calc(var(--u)*6) rgba(140,180,255,0.6);
+  animation:sparkleShimmer 1.8s ease-in-out infinite alternate;
+}
+#rank-text-wrap.rank-sparkle #rank-line1 .initial{
+  font-weight:900;
+  font-size:1.5em;
+  display:inline-block;
+  background:linear-gradient(135deg,#ff3300,#ff8800,#ffcc00);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 calc(var(--u)*3) rgba(255,80,0,0.9))
+         drop-shadow(0 0 calc(var(--u)*6) rgba(255,150,0,0.7));
+  animation:initialBounce 1.4s ease-in-out infinite alternate;
+}
+
+/* ---- Aurora! (90-94%) ---- */
+#rank-text-wrap.rank-aurora #rank-line1{
+  font-size:calc(var(--u)*9);
+  font-weight:700;
+  color:#c0e8e0;
+  text-shadow:0 0 calc(var(--u)*3) rgba(100,220,200,0.7),
+              0 0 calc(var(--u)*7) rgba(160,100,220,0.5);
+  animation:auroraWave 2.5s ease-in-out infinite alternate;
+}
+#rank-text-wrap.rank-aurora #rank-line1 .initial{
+  font-weight:900;
+  font-size:1.5em;
+  display:inline-block;
+  background:linear-gradient(135deg,#8800ff,#00ddaa,#4400cc);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 calc(var(--u)*3) rgba(120,0,255,0.9))
+         drop-shadow(0 0 calc(var(--u)*6) rgba(0,200,150,0.7));
+  animation:initialFloat 2s ease-in-out infinite alternate;
+}
+
+/* ---- Brilliant! (80-89%) ---- */
+#rank-text-wrap.rank-brilliant #rank-line1{
+  font-size:calc(var(--u)*8.5);
+  font-weight:700;
+  color:#b8d8f8;
+  text-shadow:0 0 calc(var(--u)*3) rgba(80,160,240,0.8),
+              0 0 calc(var(--u)*7) rgba(0,120,220,0.5);
+  animation:brilliantFlash 2s ease-in-out infinite alternate;
+}
+#rank-text-wrap.rank-brilliant #rank-line1 .initial{
+  font-weight:900;
+  font-size:1.5em;
+  display:inline-block;
+  background:linear-gradient(135deg,#0044ff,#00ccff,#0088ff);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 calc(var(--u)*3) rgba(0,100,255,0.9))
+         drop-shadow(0 0 calc(var(--u)*6) rgba(0,200,255,0.7));
+  animation:initialPulse 1.6s ease-in-out infinite alternate;
+}
+
+/* ---- Cute! (70-79%) ---- */
+#rank-text-wrap.rank-cute #rank-line1{
+  font-size:calc(var(--u)*9.5);
+  font-weight:700;
+  color:#f8b0d8;
+  text-shadow:0 0 calc(var(--u)*3) rgba(240,80,160,0.7),
+              0 0 calc(var(--u)*6) rgba(255,100,200,0.5);
+  animation:cuteWiggle 1.8s ease-in-out infinite alternate;
+}
+#rank-text-wrap.rank-cute #rank-line1 .initial{
+  font-weight:900;
+  font-size:1.5em;
+  display:inline-block;
+  background:linear-gradient(135deg,#ff0077,#ff44cc,#cc00aa);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 calc(var(--u)*3) rgba(255,0,120,0.9))
+         drop-shadow(0 0 calc(var(--u)*6) rgba(200,0,150,0.7));
+  animation:initialCute 1.5s ease-in-out infinite alternate;
+}
+
+/* ============================================================
+   @keyframes
+   ============================================================ */
+@keyframes rainbowShift{
+  0%{background-position:0% center;}
+  100%{background-position:200% center;}
+}
+@keyframes perfectPulse{
+  from{filter:drop-shadow(0 0 calc(var(--u)*2) rgba(255,220,0,0.9)) drop-shadow(0 0 calc(var(--u)*5) rgba(255,100,200,0.7));}
+  to  {filter:drop-shadow(0 0 calc(var(--u)*5) rgba(255,220,0,1))   drop-shadow(0 0 calc(var(--u)*12) rgba(255,100,200,1));}
+}
+@keyframes initialSpin{
+  from{transform:scale(1) rotate(-8deg);}
+  to  {transform:scale(1.15) rotate(8deg);}
+}
+@keyframes crystalGlow{
+  from{text-shadow:0 0 calc(var(--u)*4) rgba(255,220,0,0.9),0 0 calc(var(--u)*10) rgba(255,150,0,0.7);}
+  to  {text-shadow:0 0 calc(var(--u)*8) rgba(255,220,0,1),  0 0 calc(var(--u)*18) rgba(255,150,0,0.9);}
+}
+@keyframes sparkleShimmer{
+  from{text-shadow:0 0 calc(var(--u)*3) rgba(180,210,255,0.9),0 0 calc(var(--u)*6) rgba(140,180,255,0.6);}
+  to  {text-shadow:0 0 calc(var(--u)*6) rgba(200,230,255,1),  0 0 calc(var(--u)*12) rgba(160,210,255,0.9);}
+}
+@keyframes initialBounce{
+  from{transform:translateY(0) scale(1);}
+  to  {transform:translateY(-8%) scale(1.1);}
+}
+@keyframes auroraWave{
+  0%  {text-shadow:0 0 calc(var(--u)*3) rgba(100,220,200,0.7),0 0 calc(var(--u)*7) rgba(160,100,220,0.5);}
+  50% {text-shadow:0 0 calc(var(--u)*5) rgba(0,200,150,0.9),  0 0 calc(var(--u)*10) rgba(100,0,200,0.7);}
+  100%{text-shadow:0 0 calc(var(--u)*4) rgba(150,255,200,0.8),0 0 calc(var(--u)*8) rgba(200,150,255,0.6);}
+}
+@keyframes initialFloat{
+  from{transform:translateY(0) scale(1);}
+  to  {transform:translateY(-10%) scale(1.12);}
+}
+@keyframes brilliantFlash{
+  from{text-shadow:0 0 calc(var(--u)*3) rgba(80,160,240,0.8),0 0 calc(var(--u)*7) rgba(0,120,220,0.5);}
+  to  {text-shadow:0 0 calc(var(--u)*7) rgba(100,200,255,1),  0 0 calc(var(--u)*14) rgba(0,160,255,0.8);}
+}
+@keyframes initialPulse{
+  from{transform:scale(1);}
+  to  {transform:scale(1.18);}
+}
+@keyframes cuteWiggle{
+  from{transform:rotate(-3deg);}
+  to  {transform:rotate(3deg);}
+}
+@keyframes initialCute{
+  from{transform:scale(1) rotate(-5deg);}
+  to  {transform:scale(1.15) rotate(5deg);}
+}
+
+/* トッピングアニメ */
+.topping{
+  position:absolute;
+  font-size:calc(var(--u)*6);
+  animation:toppingFall 1.2s ease-in forwards;
+  z-index:47;pointer-events:none;
+}
+@keyframes toppingFall{
+  0%{transform:translateY(-10%) rotate(0deg);opacity:1;}
+  80%{opacity:1;}
+  100%{transform:translateY(calc(var(--uh)*30)) rotate(360deg);opacity:0;}
+}
+/* 液滴アニメ */
+.drop-anim{
+  position:absolute;
+  width:calc(var(--u)*3);height:calc(var(--u)*4);
+  border-radius:50% 50% 50% 50%/60% 60% 40% 40%;
+  pointer-events:none;
+  animation:dropFall 0.6s ease-in forwards;
+  z-index:16;
+}
+@keyframes dropFall{
+  0%{transform:translateY(0);opacity:1;}
+  100%{transform:translateY(calc(var(--uh)*25));opacity:0;}
+}
+/* 波紋エフェクト */
+.ripple{
+  position:absolute;
+  border-radius:50%;
+  border:2px solid rgba(255,255,255,0.6);
+  animation:rippleAnim 0.6s ease-out forwards;
+  pointer-events:none;
+}
+@keyframes rippleAnim{
+  0%{width:0;height:0;opacity:1;left:50%;top:30%;}
+  100%{width:calc(var(--u)*20);height:calc(var(--u)*6);opacity:0;
+       left:calc(50% - var(--u)*10);top:calc(30% - var(--u)*3);}
+}
+/* ソーダで薄めるヒント表示 */
+#soda-hint{
+  position:absolute;
+  bottom:calc(var(--uh)*30);
+  left:50%;transform:translateX(-50%);
+  font-size:calc(var(--u)*2.4);
+  color:var(--theme-soda-text);
+  font-weight:600;
+  opacity:0;
+  z-index:20;
+  white-space:nowrap;
+  text-shadow:0 0 calc(var(--u)*2) rgba(255,255,255,0.8);
+  transition:opacity 0.4s;
+  pointer-events:none;
+}
+#soda-hint.show{opacity:1;}
+
+/* ============================================================
+   オーバーレイ背景（称号ランクごと）
+   ============================================================ */
+#rank-overlay.rank-perfect{
+  background:radial-gradient(circle at 50% 40%,
+    rgba(255,230,100,0.85) 0%,
+    rgba(255,180,220,0.65) 35%,
+    rgba(200,240,255,0.45) 60%,
+    transparent 80%);
+}
+#rank-overlay.rank-sparkle{
+  background:radial-gradient(circle at 50% 40%,
+    rgba(200,220,255,0.8) 0%,
+    rgba(180,210,255,0.55) 40%,
+    rgba(220,235,255,0.3) 65%,
+    transparent 80%);
+}
+#rank-overlay.rank-aurora{
+  background:radial-gradient(circle at 50% 40%,
+    rgba(150,240,220,0.75) 0%,
+    rgba(180,120,240,0.5) 40%,
+    rgba(100,200,180,0.3) 65%,
+    transparent 80%);
+}
+#rank-overlay.rank-brilliant{
+  background:radial-gradient(circle at 50% 40%,
+    rgba(180,220,255,0.8) 0%,
+    rgba(100,180,255,0.55) 40%,
+    rgba(0,140,255,0.25) 65%,
+    transparent 80%);
+}
+#rank-overlay.rank-cute{
+  background:radial-gradient(circle at 50% 40%,
+    rgba(255,200,230,0.8) 0%,
+    rgba(255,150,200,0.55) 40%,
+    rgba(255,180,220,0.3) 65%,
+    transparent 80%);
+}
+</style>
+</head>
+<body>
+<div id="phone">
+  <div id="bg"></div>
+  <!-- ステージHUD -->
+  <div id="stage-hud">
+    <div class="stage-label" id="stage-label">STAGE 1</div>
+  </div>
+  <!-- ゴール色エリア -->
+  <div id="goal-area">
+    <div class="goal-label">目標</div>
+    <div id="goal-glass"><div id="goal-fill"></div></div>
+    <div class="goal-label" id="goal-name">目標色</div>
+  </div>
+  <!-- ゴールヒントラベル（ソーダで割った後の色） -->
+  <div id="goal-hint-label">ソーダで割ったあとの色</div>
+  <!-- 色差ゲージ -->
+  <div id="gauge-wrap">
+    <div class="gauge-title">カラーマッチ</div>
+    <div id="gauge-bg"><div id="gauge-fill"></div></div>
+    <div id="gauge-pct">0%</div>
+  </div>
+  <!-- メイングラス -->
+  <div id="main-glass-wrap">
+    <div id="main-glass">
+      <div id="liquid-fill"></div>
+      <canvas id="bubble-canvas"></canvas>
+      <div id="overflow-flash"></div>
+      <div id="crystal-shine"></div>
+    </div>
+  </div>
+  <div id="drop-container"></div>
+  <!-- オーバーフロー警告 -->
+  <div id="overflow-warn">あふれた！</div>
+  <!-- ソーダヒント -->
+  <div id="soda-hint">ソーダで薄めよう！</div>
+  <!-- ボトル + ソーダエリア -->
+  <div id="bottle-area">
+    <!-- ボトルはJSで生成 -->
+    <div id="soda-wrap">
+      <div id="soda-btn">
+        <div id="soda-level-bar"></div>
+        <div class="soda-icon">🥤</div>
+        <div class="soda-text">ソーダ</div>
+        <div class="soda-sub">長押し</div>
+      </div>
+      <div id="soda-label">ソーダサーバー</div>
+    </div>
+  </div>
+  <!-- 下部バー -->
+  <div id="bottom-bar">
+    <div id="fill-meter">容量: <span id="fill-pct">0</span>%</div>
+    <div id="drop-count">滴数: <span id="drop-num">0</span></div>
+  </div>
+  <!-- 称号演出オーバーレイ -->
+  <div id="rank-overlay"></div>
+  <canvas id="rank-canvas"></canvas>
+  <!-- 称号テキスト -->
+  <div id="rank-text-wrap">
+    <span id="rank-line1"></span>
+    <span id="rank-line2">CRYSTAL</span>
+  </div>
+  <!-- クリアモーダル -->
+  <div id="modal">
+    <div id="modal-title"></div>
+    <div id="modal-perfect"></div>
+    <div id="modal-score"></div>
+    <div id="modal-toppings"></div>
+    <button id="modal-btn"></button>
+  </div>
+</div>
+<script>
+// ===== カラーテーマ定義 =====
+const THEMES = [
+  { bg1:'#fdf5f8', bg2:'#f8ecf2', bg3:'#f0e4ec', accent:'#e8a0b8', soda1:'#f5d0e0', soda2:'#e0a0c0', sodaText:'#8a3a5a', sodaSub:'#b06080' },
+  { bg1:'#fef0f4', bg2:'#fde0e8', bg3:'#f8d0dc', accent:'#e890b0', soda1:'#f0c0d4', soda2:'#e090b0', sodaText:'#6a1030', sodaSub:'#a03060' },
+  { bg1:'#f5f2fc', bg2:'#ece8f8', bg3:'#e0d8f4', accent:'#9878d0', soda1:'#d8c8f4', soda2:'#b8a0e8', sodaText:'#3a1870', sodaSub:'#6030a8' },
+  { bg1:'#fff8f0', bg2:'#ffeee0', bg3:'#ffe4cc', accent:'#e8a070', soda1:'#ffd8b0', soda2:'#f0b880', sodaText:'#7a3808', sodaSub:'#c06020' },
+  { bg1:'#f2faf4', bg2:'#e4f5e8', bg3:'#d4eedd', accent:'#70c088', soda1:'#c0e8cc', soda2:'#90d0a8', sodaText:'#0a4820', sodaSub:'#208040' }
+];
+
+// ===== ステージデータ =====
+const STAGES = [
+  { id:1, name:'ローズソーダ', goal:{r:248,g:218,b:228}, goalName:'ミルキーローズ',
+    bottles:[{name:'ローズ',color:{r:220,g:70,b:110},bodyColor:'#dc4670',capColor:'#c03060',maxDrops:6}],
+    glassMax:100, sodaFillRate:3.5, hint:'シロップを1滴たらして\nソーダで薄めよう' },
+  { id:2, name:'ストロベリークリーム', goal:{r:245,g:210,b:220}, goalName:'ミルキーストロベリー',
+    bottles:[{name:'ストロベリー',color:{r:200,g:40,b:80},bodyColor:'#c82850',capColor:'#a01840',maxDrops:6},{name:'クリーム',color:{r:240,g:180,b:160},bodyColor:'#f0b4a0',capColor:'#d09080',maxDrops:6}],
+    glassMax:100, sodaFillRate:3.2, hint:'2滴入れてから\nソーダでゆっくり薄めよう' },
+  { id:3, name:'ラベンダーミスト', goal:{r:220,g:210,b:240}, goalName:'ラベンダーミルク',
+    bottles:[{name:'バイオレット',color:{r:120,g:60,b:200},bodyColor:'#783cc8',capColor:'#5828a0',maxDrops:8},{name:'ローズ',color:{r:200,g:80,b:130},bodyColor:'#c85082',capColor:'#a03460',maxDrops:8}],
+    glassMax:100, sodaFillRate:3.0, hint:'バイオレット多め＋ローズ少し\nたっぷりソーダで淡く仕上げよう' },
+  { id:4, name:'サンセットオレンジ', goal:{r:250,g:230,b:200}, goalName:'ゴールデンクリーム',
+    bottles:[{name:'マンゴー',color:{r:240,g:150,b:20},bodyColor:'#f09614',capColor:'#d07800',maxDrops:8},{name:'レッド',color:{r:210,g:50,b:40},bodyColor:'#d23228',capColor:'#b01818',maxDrops:8}],
+    glassMax:100, sodaFillRate:2.8, hint:'マンゴーとレッドを混ぜてから\nソーダで夕暮れ色に仕上げよう' },
+  { id:5, name:'マッチャラテ', goal:{r:210,g:240,b:220}, goalName:'ソーダマッチャ',
+    bottles:[{name:'マッチャ',color:{r:60,g:160,b:80},bodyColor:'#3ca050',capColor:'#208038',maxDrops:10},{name:'ミント',color:{r:80,g:200,b:140},bodyColor:'#50c88c',capColor:'#38a870',maxDrops:10},{name:'ラベンダー',color:{r:118,g:82,b:196},bodyColor:'#7652c4',capColor:'#6040b0',maxDrops:8}],
+    glassMax:100, sodaFillRate:2.5, hint:'3色を混ぜてから\nソーダでふわっと薄めよう' }
+];
+
+// ===== ゲーム状態 =====
+let state = {
+  stageIdx:0, liquidR:255,liquidG:255,liquidB:255,
+  fillPct:0, totalDrops:0, bottleDrops:[],
+  sodaPressing:false, sodaTimer:null,
+  gameOver:false, cleared:false,
+  bubbles:[], hintShown:false
+};
+
+// ===== DOM =====
+const phone      = document.getElementById('phone');
+const bg         = document.getElementById('bg');
+const goalFill   = document.getElementById('goal-fill');
+const goalName   = document.getElementById('goal-name');
+const gaugeFill  = document.getElementById('gauge-fill');
+const gaugePct   = document.getElementById('gauge-pct');
+const liqFill    = document.getElementById('liquid-fill');
+const overFlash  = document.getElementById('overflow-flash');
+const crystShine = document.getElementById('crystal-shine');
+const dropCont   = document.getElementById('drop-container');
+const overWarn   = document.getElementById('overflow-warn');
+const fillPctEl  = document.getElementById('fill-pct');
+const dropNumEl  = document.getElementById('drop-num');
+const bottleArea = document.getElementById('bottle-area');
+const sodaBtn    = document.getElementById('soda-btn');
+const sodaLvBar  = document.getElementById('soda-level-bar');
+const stageLabel = document.getElementById('stage-label');
+const modal      = document.getElementById('modal');
+const modalTitle = document.getElementById('modal-title');
+const modalPerf  = document.getElementById('modal-perfect');
+const modalScore = document.getElementById('modal-score');
+const modalTop   = document.getElementById('modal-toppings');
+const modalBtn   = document.getElementById('modal-btn');
+const bubCanvas  = document.getElementById('bubble-canvas');
+const bubCtx     = bubCanvas.getContext('2d');
+const sodaHint   = document.getElementById('soda-hint');
+const rankOvl    = document.getElementById('rank-overlay');
+const rankCvs    = document.getElementById('rank-canvas');
+const rankCtx    = rankCvs.getContext('2d');
+const rankWrap   = document.getElementById('rank-text-wrap');
+const rankLine1  = document.getElementById('rank-line1');
+const rankLine2  = document.getElementById('rank-line2');
+
+// ===== 称号データ =====
+const RANKS = [
+  { min:98, cls:'rank-perfect',   line1:'<span class="initial">P</span>ERFECT', line2:'CRYSTAL', particles:'perfect' },
+  { min:95, cls:'rank-sparkle',   line1:'<span class="initial">S</span>parkle!!', line2:'', particles:'sparkle' },
+  { min:90, cls:'rank-aurora',    line1:'<span class="initial">A</span>urora!',  line2:'', particles:'aurora'  },
+  { min:80, cls:'rank-brilliant', line1:'<span class="initial">B</span>rilliant!',line2:'', particles:'brilliant'},
+  { min:70, cls:'rank-cute',      line1:'<span class="initial">C</span>ute!',    line2:'', particles:'cute'    }
+];
+
+function getRank(pct){
+  return RANKS.find(r => pct >= r.min) || null;
+}
+
+// ===== テーマ適用 =====
+function applyTheme(idx){
+  const t = THEMES[idx];
+  phone.style.setProperty('--theme-bg1', t.bg1);
+  phone.style.setProperty('--theme-bg2', t.bg2);
+  phone.style.setProperty('--theme-bg3', t.bg3);
+  phone.style.setProperty('--theme-accent', t.accent);
+  phone.style.setProperty('--theme-soda1', t.soda1);
+  phone.style.setProperty('--theme-soda2', t.soda2);
+  phone.style.setProperty('--theme-soda-text', t.sodaText);
+  phone.style.setProperty('--theme-soda-sub', t.sodaSub);
+}
+
+// ===== 初期化 =====
+function initStage(idx){
+  const st = STAGES[idx];
+  state.stageIdx    = idx;
+  state.liquidR     = 252; state.liquidG = 248; state.liquidB = 245;
+  state.fillPct     = 0;
+  state.totalDrops  = 0;
+  state.bottleDrops = st.bottles.map(()=>0);
+  state.sodaPressing= false;
+  state.gameOver    = false;
+  state.cleared     = false;
+  state.bubbles     = [];
+  state.hintShown   = false;
+  clearTimeout(state.sodaTimer);
+
+  applyTheme(idx);
+  stageLabel.textContent = `STAGE ${st.id}`;
+  goalFill.style.backgroundColor = rgbStr(st.goal);
+  goalName.textContent = st.goalName;
+
+  // ボトル生成
+  bottleArea.querySelectorAll('.syrup-bottle').forEach(b=>b.remove());
+  const sodaWrap = document.getElementById('soda-wrap');
+  st.bottles.forEach((b,i)=>{
+    const el = createBottleEl(b,i);
+    bottleArea.insertBefore(el, sodaWrap);
+  });
+
+  sodaBtn.classList.remove('pressing');
+  sodaLvBar.style.height = '0%';
+
+  // 称号オーバーレイリセット
+  rankOvl.className = '';
+  rankCvs.className = '';
+  rankWrap.className = '';
+  rankLine1.innerHTML = '';
+
+  modal.classList.remove('show');
+  modalPerf.classList.remove('show');
+  overWarn.style.opacity = '0';
+  sodaHint.classList.remove('show');
+
+  stopRankParticles();
+  updateGlass();
+  resizeBubbleCanvas();
+  resizeRankCanvas();
+}
+
+function createBottleEl(bData, idx){
+  const wrap = document.createElement('div');
+  wrap.className = 'syrup-bottle';
+  wrap.innerHTML = `
+    <div class="bottle-cap" style="background:${bData.capColor}"></div>
+    <div class="bottle-neck" style="background:${bData.bodyColor}; border-color:rgba(255,255,255,0.5)"></div>
+    <div class="bottle-body" style="background:linear-gradient(160deg,${bData.bodyColor}dd,${bData.bodyColor})">
+      <div style="position:absolute;top:20%;left:15%;width:25%;height:40%;background:rgba(255,255,255,0.25);border-radius:2px;"></div>
+    </div>
+    <div class="bottle-label">${bData.name}</div>
+    <div class="bottle-count">×<span id="bcnt-${idx}">0</span></div>
+  `;
+  wrap.addEventListener('click', ()=> addDrop(idx));
+  return wrap;
+}
+
+// ===== 色計算 =====
+function rgbStr({r,g,b}){return `rgb(${r},${g},${b})`;}
+function colorDist(r1,g1,b1,r2,g2,b2){return Math.sqrt((r1-r2)**2+(g1-g2)**2+(b1-b2)**2);}
+function matchPct(r,g,b,goal){
+  const maxDist = Math.sqrt(3*255**2);
+  const d = colorDist(r,g,b,goal.r,goal.g,goal.b);
+  return Math.max(0, Math.round((1 - d/maxDist)*100));
+}
+
+function updateGlass(){
+  const st = STAGES[state.stageIdx];
+  const fillH = Math.min(100, state.fillPct);
+  liqFill.style.height = fillH + '%';
+  liqFill.style.backgroundColor = rgbStr({r:state.liquidR,g:state.liquidG,b:state.liquidB});
+  fillPctEl.textContent = Math.round(fillH);
+  dropNumEl.textContent = state.totalDrops;
+
+  const pct  = matchPct(state.liquidR,state.liquidG,state.liquidB, st.goal);
+  const gpct = Math.min(100, state.fillPct < 5 ? 0 : pct);
+  gaugeFill.style.width = gpct + '%';
+
+  const t = THEMES[state.stageIdx];
+  if(gpct > 75)      gaugeFill.style.background = `linear-gradient(90deg,${t.soda2},${t.accent})`;
+  else if(gpct > 50) gaugeFill.style.background = `linear-gradient(90deg,${t.accent},${t.soda1})`;
+  else               gaugeFill.style.background = `linear-gradient(90deg,${t.accent},rgba(200,200,220,0.6))`;
+  gaugePct.textContent = gpct + '%';
+  gaugeFill.style.boxShadow = gpct > 80
+    ? `0 0 calc(var(--u)*2) rgba(100,220,180,${(gpct-80)/20*0.8})` : 'none';
+
+  if(state.totalDrops >= 1 && !state.hintShown && !state.sodaPressing){
+    state.hintShown = true;
+    sodaHint.classList.add('show');
+    setTimeout(()=>sodaHint.classList.remove('show'), 2500);
+  }
+  document.getElementById('bcnt-0') && updateBottleCounts();
+}
+
+function updateBottleCounts(){
+  state.bottleDrops.forEach((n,i)=>{
+    const el = document.getElementById(`bcnt-${i}`);
+    if(el) el.textContent = n;
+  });
+}
+
+// ===== シロップ滴下 =====
+function addDrop(bottleIdx){
+  if(state.gameOver || state.cleared || state.sodaPressing) return;
+  if(state.fillPct >= 85) return;
+  const st  = STAGES[state.stageIdx];
+  const b   = st.bottles[bottleIdx];
+  const dc  = b.color;
+  const dropVol = 5;
+  const currVol = Math.max(0.1, state.fillPct);
+  const totalVol = currVol + dropVol;
+  state.liquidR = Math.round((state.liquidR * currVol + dc.r * dropVol) / totalVol);
+  state.liquidG = Math.round((state.liquidG * currVol + dc.g * dropVol) / totalVol);
+  state.liquidB = Math.round((state.liquidB * currVol + dc.b * dropVol) / totalVol);
+  state.fillPct = Math.min(100, state.fillPct + dropVol);
+  state.totalDrops++;
+  state.bottleDrops[bottleIdx]++;
+  spawnDropAnim(bottleIdx, b.bodyColor);
+  spawnRipple();
+  updateGlass();
+}
+
+function spawnDropAnim(bottleIdx, color){
+  const drop = document.createElement('div');
+  drop.className = 'drop-anim';
+  drop.style.backgroundColor = color;
+  const btls = bottleArea.querySelectorAll('.syrup-bottle');
+  let xPct = 30 + bottleIdx * 20;
+  if(btls[bottleIdx]){
+    const r  = btls[bottleIdx].getBoundingClientRect();
+    const pr = phone.getBoundingClientRect();
+    xPct = ((r.left + r.width/2 - pr.left) / pr.width * 100);
+  }
+  drop.style.left = `calc(${xPct}% - var(--u)*1.5)`;
+  drop.style.top  = `calc(var(--uh)*60)`;
+  dropCont.appendChild(drop);
+  drop.addEventListener('animationend',()=>drop.remove());
+}
+
+function spawnRipple(){
+  const rip = document.createElement('div');
+  rip.className = 'ripple';
+  document.getElementById('main-glass').appendChild(rip);
+  rip.addEventListener('animationend',()=>rip.remove());
+}
+
+// ===== ソーダ長押し =====
+sodaBtn.addEventListener('mousedown', startSoda);
+sodaBtn.addEventListener('mouseup',   stopSoda);
+sodaBtn.addEventListener('mouseleave',stopSoda);
+
+function startSoda(e){
+  if(state.gameOver || state.cleared) return;
+  if(state.fillPct <= 2) return;
+  sodaElapsed = 0;
+  state.sodaPressing = true;
+  sodaBtn.classList.add('pressing');
+  sodaHint.classList.remove('show');
+  spawnBubbles();
+  state.sodaTimer = setInterval(sodaTick, 80);
+}
+
+function stopSoda(e){
+  if(!state.sodaPressing) return;
+  state.sodaPressing = false;
+  sodaBtn.classList.remove('pressing');
+  sodaLvBar.style.height = '0%';
+  clearInterval(state.sodaTimer);
+  state.sodaTimer = null;
+  if(!state.gameOver && !state.cleared && state.fillPct > 10){
+    checkClear();
+  }
+}
+
+let sodaElapsed = 0;
+function sodaTick(){
+  if(!state.sodaPressing) return;
+  const st = STAGES[state.stageIdx];
+  sodaElapsed++;
+  const addVol = st.sodaFillRate;
+  const prevVol = state.fillPct;
+  const newVol  = prevVol + addVol;
+  if(newVol >= 100){
+    state.fillPct = 100;
+    updateGlass();
+    overflowHandler();
+    return;
+  }
+  state.liquidR = Math.round((state.liquidR * prevVol + 248 * addVol) / newVol);
+  state.liquidG = Math.round((state.liquidG * prevVol + 250 * addVol) / newVol);
+  state.liquidB = Math.round((state.liquidB * prevVol + 252 * addVol) / newVol);
+  state.fillPct = newVol;
+  sodaLvBar.style.height = Math.min(100, sodaElapsed * 8) + '%';
+  updateGlass();
+}
+
+function overflowHandler(){
+  state.gameOver = true;
+  clearInterval(state.sodaTimer);
+  state.sodaTimer = null;
+  sodaBtn.classList.remove('pressing');
+  state.sodaPressing = false;
+  overFlash.style.opacity = '1';
+  overWarn.style.opacity  = '1';
+  setTimeout(()=>{
+    overFlash.style.opacity = '0';
+    overWarn.style.opacity  = '0';
+    setTimeout(()=> initStage(state.stageIdx), 500);
+  }, 1200);
+}
+
+// ===== クリア判定 =====
+function checkClear(){
+  const st  = STAGES[state.stageIdx];
+  const pct = matchPct(state.liquidR,state.liquidG,state.liquidB, st.goal);
+  if(pct < 62) return;
+  state.cleared = true;
+  clearInterval(state.sodaTimer);
+  crystShine.style.opacity = '1';
+  const rank = getRank(pct);
+  if(rank){
+    showRankCrystal(rank, pct);
+  } else {
+    setTimeout(()=> showClearModal(pct, false), 600);
+  }
+}
+
+// ===== 称号演出（新） =====
+function showRankCrystal(rank, pct){
+  // オーバーレイ
+  rankOvl.className = 'show ' + rank.cls;
+  // テキスト
+  rankLine1.innerHTML = rank.line1;
+  rankLine2.textContent = rank.line2;
+  rankWrap.className = rank.cls;
+  setTimeout(()=> rankWrap.classList.add('show'), 50);
+  // パーティクル
+  startRankParticles(rank.particles);
+  // トッピング
+  setTimeout(()=> spawnToppings(pct), 400);
+  // モーダルへ
+  setTimeout(()=>{
+    stopRankParticles();
+    showClearModal(pct, true, rank);
+  }, 2200);
+}
+
+// ===== パーティクルシステム =====
+let rankParticleRAF = null;
+let rankParticles   = [];
+
+function resizeRankCanvas(){
+  const pr = phone.getBoundingClientRect();
+  rankCvs.width  = pr.width  || 390;
+  rankCvs.height = pr.height || 845;
+}
+
+function startRankParticles(type){
+  rankCvs.className = 'show';
+  rankParticles = [];
+  spawnRankParticles(type, 60);
+  function loop(){
+    drawRankParticles(type);
+    rankParticleRAF = requestAnimationFrame(loop);
+  }
+  rankParticleRAF = requestAnimationFrame(loop);
+}
+
+function stopRankParticles(){
+  if(rankParticleRAF){ cancelAnimationFrame(rankParticleRAF); rankParticleRAF = null; }
+  rankCtx.clearRect(0,0,rankCvs.width,rankCvs.height);
+  rankCvs.className = '';
+  rankParticles = [];
+}
+
+function spawnRankParticles(type, count){
+  const W = rankCvs.width, H = rankCvs.height;
+  for(let i = 0; i < count; i++){
+    rankParticles.push(makeParticle(type, W, H));
+  }
+}
+
+function makeParticle(type, W, H){
+  const p = {
+    x: Math.random() * W,
+    y: Math.random() * H,
+    vx: (Math.random()-0.5) * 1.2,
+    vy: -(0.5 + Math.random() * 2),
+    size: 2 + Math.random() * 5,
+    alpha: 0.7 + Math.random() * 0.3,
+    decay: 0.008 + Math.random() * 0.006,
+    type,
+    hue: Math.random() * 360,
+    shape: Math.floor(Math.random() * 3) // 0=circle, 1=star, 2=diamond
+  };
+  return p;
+}
+
+function drawRankParticles(type){
+  const W = rankCvs.width, H = rankCvs.height;
+  rankCtx.clearRect(0,0,W,H);
+
+  // 補充（常に50粒維持）
+  rankParticles = rankParticles.filter(p => p.alpha > 0.02);
+  while(rankParticles.length < 50){ rankParticles.push(makeParticle(type,W,H)); }
+
+  rankParticles.forEach(p=>{
+    p.x  += p.vx;
+    p.y  += p.vy;
+    p.vy += 0.03; // 重力
+    p.alpha -= p.decay;
+    if(p.alpha < 0) p.alpha = 0;
+
+    rankCtx.save();
+    rankCtx.globalAlpha = p.alpha;
+    rankCtx.translate(p.x, p.y);
+
+    let color;
+    switch(type){
+      case 'perfect':
+        color = `hsl(${(p.hue + Date.now()*0.1) % 360},100%,65%)`; break;
+      case 'sparkle':
+        color = `hsl(${200 + p.hue * 0.3},80%,75%)`; break;
+      case 'aurora':
+        color = `hsl(${150 + p.hue * 0.6},70%,65%)`; break;
+      case 'brilliant':
+        color = `hsl(${210 + p.hue * 0.2},80%,70%)`; break;
+      case 'cute':
+        color = `hsl(${310 + p.hue * 0.3},80%,70%)`; break;
+      default:
+        color = '#fff';
+    }
+
+    if(p.shape === 0){
+      // circle glitter
+      rankCtx.beginPath();
+      rankCtx.arc(0,0,p.size,0,Math.PI*2);
+      rankCtx.fillStyle = color;
+      rankCtx.fill();
+      // glow
+      const grad = rankCtx.createRadialGradient(0,0,0,0,0,p.size*2.5);
+      grad.addColorStop(0, color.replace(')', ',0.5)').replace('hsl', 'hsla'));
+      grad.addColorStop(1, 'transparent');
+      rankCtx.beginPath();
+      rankCtx.arc(0,0,p.size*2.5,0,Math.PI*2);
+      rankCtx.fillStyle = grad;
+      rankCtx.fill();
+    } else if(p.shape === 1){
+      // star
+      drawStar(rankCtx, 0, 0, 4, p.size, p.size*0.45, color);
+    } else {
+      // diamond
+      drawDiamond(rankCtx, 0, 0, p.size, color);
+    }
+
+    rankCtx.restore();
+  });
+}
+
+function drawStar(ctx, cx, cy, spikes, outerR, innerR, color){
+  let rot = (Math.PI / 2) * 3;
+  const step = Math.PI / spikes;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - outerR);
+  for(let i = 0; i < spikes; i++){
+    ctx.lineTo(cx + Math.cos(rot) * outerR, cy + Math.sin(rot) * outerR);
+    rot += step;
+    ctx.lineTo(cx + Math.cos(rot) * innerR, cy + Math.sin(rot) * innerR);
+    rot += step;
+  }
+  ctx.lineTo(cx, cy - outerR);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+function drawDiamond(ctx, cx, cy, r, color){
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - r*1.4);
+  ctx.lineTo(cx + r, cy);
+  ctx.lineTo(cx, cy + r*1.1);
+  ctx.lineTo(cx - r, cy);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+// ===== クリアモーダル =====
+function showClearModal(pct, hasRank, rank){
+  const st = STAGES[state.stageIdx];
+  const isLastStage = state.stageIdx >= STAGES.length - 1;
+  const t  = THEMES[state.stageIdx];
+
+  // 称号テキストをモーダルにも反映
+  if(hasRank && rank){
+    modalTitle.textContent = ''; // クリアテキスト不要
+    // テキスト（HTMLを使いたいのでinnerHTML）
+    const tmp = document.createElement('div');
+    tmp.innerHTML = rank.line1;
+    modalTitle.textContent = tmp.textContent + (rank.line2 ? ' ' + rank.line2 : '');
+    modalTitle.style.color  = t.accent;
+    modalPerf.innerHTML = buildRankHTML(rank, pct);
+    modalPerf.classList.add('show');
+  } else {
+    modalTitle.textContent = 'GREAT！';
+    modalTitle.style.color  = t.sodaText;
+    modalPerf.classList.remove('show');
+  }
+
+  modalScore.textContent = `カラーマッチ ${pct}%`;
+  modalTop.textContent   = getToppings(pct);
+  modalBtn.textContent   = isLastStage ? 'もう一度' : '次のステージ';
+  modalBtn.style.background = `linear-gradient(135deg,${t.accent},${t.soda2})`;
+  modal.classList.add('show');
+}
+
+function buildRankHTML(rank, pct){
+  // モーダル内の称号サブテキスト
+  const stars = pct >= 98 ? '✨🌟✨' : pct >= 95 ? '✨💫✨' : pct >= 90 ? '🌈✨' : pct >= 80 ? '💎✨' : '💕✨';
+  return `${stars} ${pct}% マッチ ${stars}`;
+}
+
+function getToppings(pct){
+  if(pct>=98) return '🧊✨💎🌟✨';
+  if(pct>=95) return '🧊✨💫🌿';
+  if(pct>=90) return '🧊✨🌿';
+  if(pct>=80) return '🧊🌿';
+  if(pct>=70) return '🌿💕';
+  if(pct>=62) return '🌿';
+  return '';
+}
+
+function spawnToppings(pct){
+  const items = getToppings(pct).split('').filter(c=>c.trim());
+  items.forEach((t,i)=>{
+    setTimeout(()=>{
+      const el = document.createElement('div');
+      el.className = 'topping';
+      el.textContent = t;
+      el.style.left  = (15 + i*16 + Math.random()*10) + '%';
+      el.style.top   = '20%';
+      phone.appendChild(el);
+      el.addEventListener('animationend',()=>el.remove());
+    }, i*180);
+  });
+}
+
+// ===== 次ステージ / リトライ =====
+modalBtn.addEventListener('click',()=>{
+  const next = state.stageIdx + 1;
+  sodaElapsed = 0;
+  initStage(next < STAGES.length ? next : 0);
+});
+
+// ===== バブルアニメ =====
+function resizeBubbleCanvas(){
+  const r = document.getElementById('main-glass').getBoundingClientRect();
+  bubCanvas.width  = r.width  || 60;
+  bubCanvas.height = r.height || 160;
+}
+
+function spawnBubbles(){
+  for(let i=0;i<3;i++){
+    state.bubbles.push({
+      x:10+Math.random()*80, y:90+Math.random()*10,
+      r:1.5+Math.random()*2, vy:-(0.8+Math.random()*1.2), alpha:0.7
+    });
+  }
+}
+
+function drawBubbles(){
+  bubCtx.clearRect(0,0,bubCanvas.width,bubCanvas.height);
+  state.bubbles = state.bubbles.filter(b=>b.alpha>0.05);
+  state.bubbles.forEach(b=>{
+    b.y += b.vy; b.alpha -= 0.012;
+    bubCtx.beginPath();
+    bubCtx.arc(b.x/100*bubCanvas.width, b.y/100*bubCanvas.height, b.r, 0, Math.PI*2);
+    bubCtx.strokeStyle = `rgba(255,255,255,${b.alpha})`;
+    bubCtx.lineWidth = 1;
+    bubCtx.stroke();
+  });
+  if(state.sodaPressing) spawnBubbles();
+}
+
+// ===== アニメーションループ =====
+function loop(){
+  drawBubbles();
+  requestAnimationFrame(loop);
+}
+
+// ===== スタート =====
+sodaElapsed = 0;
+initStage(0);
+loop();
+</script>
+</div>
+</body>
+</html>
