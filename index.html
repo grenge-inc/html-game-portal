@@ -3,125 +3,129 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Grenge HTML Game Portal</title>
+<title>Game Portal — Grenge Prototype Games</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Helvetica Neue', system-ui, sans-serif; background: #0a0a14; color: #eaf3ff; min-height: 100vh; }
-  .header { padding: 1.5rem 1.5rem 1rem; border-bottom: 1px solid #1a2848; }
-  .header h1 { font-size: 1.4rem; font-weight: 700; color: #6ff; text-shadow: 0 0 12px #6ff; letter-spacing: .04em; }
-  .header p { font-size: 0.8rem; color: #7a92b5; margin-top: 4px; }
-  .search-bar { padding: 1rem 1.5rem 0.5rem; }
-  .search-bar input { width: 100%; max-width: 480px; padding: 8px 14px; font-size: 14px; background: #060818; border: 1px solid #1a2848; border-radius: 8px; color: #eaf3ff; outline: none; }
-  .search-bar input:focus { border-color: #6ff; }
-  .count { padding: 0.5rem 1.5rem; font-size: 13px; color: #7a92b5; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; padding: 0.5rem 1.5rem 2rem; }
-  .card { background: #060818; border: 1px solid #1a2848; border-radius: 12px; padding: 14px; cursor: pointer; text-decoration: none; display: block; transition: border-color .15s, transform .1s; }
-  .card:hover { border-color: #6ff; transform: translateY(-2px); }
-  .card .name { font-size: 13px; font-weight: 500; color: #eaf3ff; line-height: 1.4; word-break: break-word; }
-  .card .size { font-size: 11px; color: #4a6080; margin-top: 6px; }
-  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 100; align-items: center; justify-content: center; }
-  .modal-bg.active { display: flex; }
-  .modal { background: #060818; border: 1px solid #1a2848; border-radius: 12px; width: 94vw; max-width: 640px; height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
-  .modal-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid #1a2848; flex-shrink: 0; }
-  .modal-title { flex: 1; font-size: 14px; font-weight: 500; color: #eaf3ff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .modal-close, .modal-open { background: none; border: 1px solid #1a2848; border-radius: 8px; padding: 5px 10px; font-size: 12px; cursor: pointer; color: #7a92b5; }
-  .modal-close:hover, .modal-open:hover { background: #0a1228; color: #eaf3ff; }
-  .modal-open { color: #6ff; border-color: #1a3848; }
-  iframe { flex: 1; border: none; width: 100%; background: #000; }
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Helvetica Neue',system-ui,sans-serif;background:#0a0a0f;color:#e8e8f0;min-height:100vh;}
+header{padding:20px 24px 16px;border-bottom:1px solid #1a1a2e;}
+header h1{font-size:18px;font-weight:600;color:#c8d0ff;letter-spacing:.04em;}
+header p{font-size:12px;color:#666;margin-top:4px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;padding:20px 24px;}
+.card{background:#10101c;border:1px solid #1a1a2e;border-radius:10px;padding:14px 14px 12px;cursor:pointer;transition:border-color .15s,transform .1s;}
+.card:hover{border-color:#4040a0;transform:translateY(-2px);}
+.card .ico{font-size:22px;margin-bottom:8px;opacity:.7;}
+.card .nm{font-size:13px;font-weight:500;color:#dde;line-height:1.4;}
+.card .sz{font-size:11px;color:#556;margin-top:4px;}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:#0d0d18;border:1px solid #2a2a50;border-radius:14px;width:94vw;max-width:740px;height:90vh;display:flex;flex-direction:column;overflow:hidden;}
+.mhead{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #1a1a2e;flex-shrink:0;}
+.mtitle{flex:1;font-size:14px;font-weight:500;color:#dde;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mclose,.mnew{background:none;border:1px solid #2a2a50;border-radius:7px;padding:5px 12px;font-size:12px;cursor:pointer;color:#888;text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
+.mclose:hover,.mnew:hover{background:#1a1a2e;color:#ccc;}
+iframe{flex:1;border:none;width:100%;}
+.search{margin:16px 24px 0;position:relative;}
+.search input{width:100%;padding:9px 14px;font-size:14px;background:#10101c;border:1px solid #1a1a2e;border-radius:8px;color:#dde;outline:none;}
+.search input:focus{border-color:#4040a0;}
+.count{font-size:12px;color:#556;margin:10px 24px 0;}
 </style>
 </head>
 <body>
-<div class="header">
-  <h1>🎮 Grenge HTML Game Portal</h1>
-  <p>40本のHTMLゲームをブラウザで遊べます</p>
-</div>
-<div class="search-bar">
-  <input type="text" id="search" placeholder="ゲームを検索..." oninput="filter()">
-</div>
-<div class="count" id="count">40 本</div>
+<header>
+  <h1>🎮 Game Portal</h1>
+  <p>Grenge prototype games — 40 titles</p>
+</header>
+<div class="search"><input type="text" id="q" placeholder="Search games..." oninput="filter()"></div>
+<div class="count" id="cnt"></div>
 <div class="grid" id="grid"></div>
 
-<div class="modal-bg" id="modal" onclick="closeIfBg(event)">
+<div class="modal-bg" id="mb" onclick="closeMB(event)">
   <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title" id="modal-title"></span>
-      <a class="modal-open" id="modal-link" href="#" target="_blank">別タブ ↗</a>
-      <button class="modal-close" onclick="closeModal()">✕ 閉じる</button>
+    <div class="mhead">
+      <span class="mtitle" id="mt"></span>
+      <a class="mnew" id="ml" href="#" target="_blank">↗ New tab</a>
+      <button class="mclose" onclick="closeModal()">✕ Close</button>
     </div>
-    <iframe id="game-frame" src=""></iframe>
+    <iframe id="gf" src="" allow="autoplay"></iframe>
   </div>
 </div>
 
 <script>
+const ICONS = ['🎯','⚡','🔥','❄','💎','🏆','🌀','🎲','🔮','🧩','🎪','🚀','🌊','🎭','💥'];
 const GAMES = [
-  {name:"チャージ一閃",file:"チャージ一閃.html",size:22},
-  {name:"連鎖割り雪崩（Chain Pop Avalanche）",file:"連鎖割り雪崩（Chain Pop Avalanche）.html",size:32},
-  {name:"カラーホールドトラップ",file:"カラーホールドトラップ.html",size:31},
-  {name:"連鎖落とし4目ローグ（チェイン・ドロップ・ローグ）",file:"連鎖落とし4目ローグ（チェイン・ドロップ・ローグ）.html",size:28},
-  {name:"元素連鎖反応（Element Chain Reaction）",file:"元素連鎖反応（Element Chain Reaction）.html",size:26},
-  {name:"グラビティ・テンウェル",file:"グラビティ・テンウェル.html",size:45},
-  {name:"ダイスチャージ・ダンジョン",file:"ダイスチャージ・ダンジョン.html",size:55},
-  {name:"カタカナしりとりソリティア",file:"カタカナしりとりソリティア.html",size:32},
-  {name:"連鎖暴走方程式",file:"連鎖暴走方程式.html",size:48},
-  {name:"コンボシュート",file:"コンボシュート.html",size:32},
-  {name:"崩落ドミノ連鎖",file:"崩落ドミノ連鎖.html",size:21},
-  {name:"磁力4方向4連",file:"磁力4方向4連.html",size:27},
-  {name:"クリスタルレゾナンス（Crystal Resonance）",file:"クリスタルレゾナンス（Crystal Resonance）.html",size:22},
-  {name:"花火大輪（HanabiBloom）",file:"花火大輪（HanabiBloom）.html",size:32},
-  {name:"★バースト連鎖リバーシ",file:"★バースト連鎖リバーシ.html",size:43},
-  {name:"磁力ホバー（Magnetic Hover 2048）",file:"磁力ホバー（Magnetic Hover 2048）.html",size:39},
-  {name:"方向連鎖パズル",file:"方向連鎖パズル.html",size:19},
-  {name:"紐引きアローソート",file:"紐引きアローソート.html",size:52},
-  {name:"紐引きチェーンパズル（ChainArrow）",file:"紐引きチェーンパズル（ChainArrow）.html",size:32},
-  {name:"グラビティスマッシュ (GravitySmash)",file:"グラビティスマッシュ (GravitySmash).html",size:55},
-  {name:"恐竜卵ソート（孵化演出）",file:"恐竜卵ソート（孵化演出）.html",size:36},
-  {name:"トリックライン・ワンスワイプ",file:"トリックライン・ワンスワイプ.html",size:39},
-  {name:"ワープ連鎖ソート",file:"ワープ連鎖ソート.html",size:25},
-  {name:"灯台の光集約（Lighthouse Convergence）",file:"灯台の光集約（Lighthouse Convergence）.html",size:45},
-  {name:"Arrow Sort Frozen Chain",file:"Arrow Sort Frozen Chain.html",size:25},
-  {name:"ドラッグ・マージライン（Drag Merge Line）",file:"ドラッグ・マージライン（Drag Merge Line）.html",size:24},
-  {name:"おとマシン",file:"おとマシン.html",size:32},
-  {name:"チェーンパンチ道場",file:"チェーンパンチ道場.html",size:37},
-  {name:"ネオン・ワンショット崩落（NeonOneShotCollapse）",file:"ネオン・ワンショット崩落（NeonOneShotCollapse）.html",size:34},
-  {name:"トレジャー・ロール（Treasure Roll）",file:"トレジャー・ロール（Treasure Roll）.html",size:38},
-  {name:"Drop 2048（ぽとぽと合体）",file:"Drop 2048（ぽとぽと合体）.html",size:29},
-  {name:"破裂で飛ばす",file:"破裂で飛ばす.html",size:23},
-  {name:"矢印スタックパズル",file:"矢印スタックパズル.html",size:70},
-  {name:"Arrow Sort Mirror Path",file:"Arrow Sort Mirror Path.html",size:22},
-  {name:"氷滑りソート",file:"氷滑りソート.html",size:25},
-  {name:"重力ルートクラッシュ",file:"重力ルートクラッシュ.html",size:35},
-  {name:"配線タワーディフェンス",file:"配線タワーディフェンス.html",size:81},
-  {name:"カーサバイバー（Car Survivor）",file:"カーサバイバー（Car Survivor）.html",size:63},
-  {name:"炎の連鎖滝（FlameChainFalls）",file:"炎の連鎖滝（FlameChainFalls）.html",size:19},
-  {name:"矢印ドミノ",file:"矢印ドミノ.html",size:23},
+  {id:"14KYa9hTN2oyS3HR9z5Sjfp4LG2e1LSmb",name:"チャージ一閃",kb:22},
+  {id:"1Gs6HhLxbFafe3EpGziYlOi9fZ_3OTJ3c",name:"連鎖割り雪崩（Chain Pop Avalanche）",kb:32},
+  {id:"1HHT5AssPEvon1u1TGW4wF7YlURLrC4hn",name:"カラーホールドトラップ",kb:31},
+  {id:"1H5cvwtGUJmxc6Bnt4v4Ago24WW3uSZUC",name:"連鎖落とし4目ローグ（チェイン・ドロップ・ローグ）",kb:28},
+  {id:"1BABhOb_g-6eM4ju3hgMWU4QHkA4LGfvw",name:"元素連鎖反応（Element Chain Reaction）",kb:26},
+  {id:"1h64QbYZbpb-FJu7nhVPwDrPgxrqh0eXU",name:"グラビティ・テンウェル",kb:45},
+  {id:"1dL7VXhbCQgW7akHh7FOqXgxw27voUwfW",name:"ダイスチャージ・ダンジョン",kb:55},
+  {id:"12JHtn5wBMYn660p1iVbfrT6G7ycPDRlc",name:"カタカナしりとりソリティア",kb:32},
+  {id:"17jM4nP16344eWYYoBluxJj88XOVwNJKn",name:"連鎖暴走方程式",kb:48},
+  {id:"1cu4rZVCIctlqB5R4MTtTBVsmw4kLYrQ2",name:"コンボシュート",kb:32},
+  {id:"1vg18Md7CKZdAwbP4Luox8U_yG-Ou8np8",name:"崩落ドミノ連鎖",kb:21},
+  {id:"1J-x80ybKvDKTSxNyXTkY3L8YnnYTkcZr",name:"磁力4方向4連",kb:27},
+  {id:"1xnLo0BcxqTEOvX5hA6YzVWXpMLPIeNWf",name:"クリスタルレゾナンス（Crystal Resonance）",kb:22},
+  {id:"1bsojLsGphPsr0YxHCx0KHu6vND0eym2c",name:"花火大輪（HanabiBloom）",kb:32},
+  {id:"1F89LMbWKTIfBZV_qFf8bdDvpqszDF1-1",name:"★バースト連鎖リバーシ",kb:43},
+  {id:"1deliSkKHB6hg4xBung1jNYdwTSCtY9bn",name:"磁力ホバー（Magnetic Hover 2048）",kb:39},
+  {id:"1qPNkcIPnkXjTSsxTA6rrp6Q7shrGF0UM",name:"方向連鎖パズル",kb:19},
+  {id:"1dwUL2mKAUhpl30V9ZdHppqrt3UJsp_Vq",name:"紐引きアローソート",kb:52},
+  {id:"18FfyZPgOyF2ljOFKdbrgGOK8qfHXX8_D",name:"紐引きチェーンパズル（ChainArrow）",kb:32},
+  {id:"12enkKulJE_Y1upa3Ha8LpGNEX-WXBkXp",name:"グラビティスマッシュ (GravitySmash)",kb:55},
+  {id:"1y4x4P2c_8fMz6oeRyalb09rsbDu0R0sJ",name:"恐竜卵ソート（孵化演出）",kb:36},
+  {id:"1Y55KnWWX1QPO0i0QQoQBIvQaY6UURcy9",name:"トリックライン・ワンスワイプ",kb:39},
+  {id:"1o6VweScOhfFM_ccYhZzQrGgvWTN9zf7Z",name:"ワープ連鎖ソート",kb:25},
+  {id:"115v9QjPqFsX3ag9OfgsGqigh0JwaLbsA",name:"灯台の光集約（Lighthouse Convergence）",kb:45},
+  {id:"10GovG-yD0QkjlLx6PsmKPu_HanW4in1v",name:"Arrow Sort Frozen Chain",kb:25},
+  {id:"1e1w3faoXnQSG18DyarafoLnKQSI3w_RY",name:"ドラッグ・マージライン（Drag Merge Line）",kb:24},
+  {id:"1SC5Q9wqgXsT3EgtuLpmKiY4zYl7N_VOl",name:"おとマシン",kb:32},
+  {id:"1YvOGwjH9yyfIYsK2YFrm5qaJNEyH5P1u",name:"チェーンパンチ道場",kb:37},
+  {id:"17DmsANacI63bGGkiA-8X44JPMGF-MRd_",name:"ネオン・ワンショット崩落（NeonOneShotCollapse）",kb:34},
+  {id:"1heYBW4lOiyPR1s-gb9qJtb6Wq6mavHXg",name:"トレジャー・ロール（Treasure Roll）",kb:38},
+  {id:"1ovJpAi8TWNDzSaazHHr-xKm0TV3daduz",name:"Drop 2048（ぽとぽと合体）",kb:29},
+  {id:"1hBvtatfgWQAGquGC7Ahf6D79iarPL4HO",name:"破裂で飛ばす",kb:23},
+  {id:"1QezaghKAgpq5LMf9RqUgSEi2Jn_VAXVZ",name:"矢印スタックパズル",kb:70},
+  {id:"1UninfVKs9OFXs_mAS8ckz4Dp5q0A-KGw",name:"Arrow Sort Mirror Path",kb:22},
+  {id:"1JVdmgzXAqzxB5JHMAKRM5FQgmrqJPiYq",name:"氷滑りソート",kb:25},
+  {id:"1WgCuecAMDR7LP5Zjhde-lqDYpW-EReak",name:"重力ルートクラッシュ",kb:35},
+  {id:"1yBAFL-zR2KfDCBBoMk-ndT1wMtjk_-8J",name:"配線タワーディフェンス",kb:81},
+  {id:"1WsZ8lDACQXU0O_d7lfyAXhsByiO0788T",name:"カーサバイバー（Car Survivor）",kb:63},
+  {id:"1vrMSMdKYOcm4plW1CmEi7N2ku1fK8mOq",name:"炎の連鎖滝（FlameChainFalls）",kb:19},
+  {id:"1Pf03Gw51-U8M5P8iDveUhrDDSXFVm4Bp",name:"矢印ドミノ",kb:23},
 ];
-const BASE = 'games/';
-let filtered = [...GAMES];
-function filter(){
-  const q = document.getElementById('search').value.toLowerCase();
-  filtered = GAMES.filter(g => g.name.toLowerCase().includes(q));
+
+let shown = [...GAMES];
+
+function openGame(g) {
+  document.getElementById('mt').textContent = g.name;
+  document.getElementById('gf').src = `https://drive.google.com/file/d/${g.id}/preview`;
+  document.getElementById('ml').href = `https://drive.google.com/file/d/${g.id}/view`;
+  document.getElementById('mb').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('mb').classList.remove('open');
+  document.getElementById('gf').src = '';
+}
+function closeMB(e) { if(e.target===document.getElementById('mb')) closeModal(); }
+
+function filter() {
+  const q = document.getElementById('q').value.toLowerCase();
+  shown = GAMES.filter(g => g.name.toLowerCase().includes(q));
   render();
 }
-function render(){
-  document.getElementById('count').textContent = filtered.length + ' 本';
-  document.getElementById('grid').innerHTML = filtered.map(g =>
-    `<div class="card" onclick='play(${JSON.stringify(g)})'>
-      <div class="name">${g.name}</div>
-      <div class="size">${g.size} KB</div>
+
+function render() {
+  document.getElementById('cnt').textContent = shown.length + ' games';
+  document.getElementById('grid').innerHTML = shown.map((g,i) =>
+    `<div class="card" onclick='openGame(${JSON.stringify(g)})'>
+      <div class="ico">${ICONS[GAMES.indexOf(g) % ICONS.length]}</div>
+      <div class="nm">${g.name}</div>
+      <div class="sz">${g.kb} KB</div>
     </div>`
   ).join('');
 }
-function play(g){
-  document.getElementById('modal-title').textContent = g.name;
-  document.getElementById('game-frame').src = BASE + encodeURIComponent(g.file);
-  document.getElementById('modal-link').href = BASE + encodeURIComponent(g.file);
-  document.getElementById('modal').classList.add('active');
-}
-function closeModal(){
-  document.getElementById('modal').classList.remove('active');
-  document.getElementById('game-frame').src = '';
-}
-function closeIfBg(e){ if(e.target===document.getElementById('modal')) closeModal(); }
+
 render();
 </script>
 </body>
