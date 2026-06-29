@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<!--
+  Phone frame template for hybrid-casual-mentor generated games.
+  Aspect ratio: 9:19.5 (iPhone X 系縦長, NEONNOVA2048 基準)。
+  PC で開いても常にこの比率を保ち、letterbox（左右黒帯）で中央表示。
+  すべてのゲーム要素は #phone の子として配置すること。
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>光の床ランナー</title>
+<style>
+  :root {
+    --phone-aspect: 9 / 19.5; /* スマホ縦長基準 (iPhone X 以降) */
+    /* ===== 背景階層（深色 radial 用ストップ） ===== */
+    --bg-deep:#02030a; --bg-mid:#0a1430; --bg-panel:#06081a; --bg-card:#0b1228;
+    --line:#1a2848;
+    /* ===== アクセント主役色（光＝シアン） ===== */
+    --cyan:#6ff; --cyan-soft:#8df; --cyan-grad-1:#3df; --cyan-grad-2:#06a;
+    --player-core:#eaffff;
+    /* 拍＝青、成功＝緑、警告＝桃 */
+    --beat:#ffd76b; --beat-soft:#ffe9a8; --good:#7dffb0; --warn:#ff8aa0;
+    /* 残光（踏んだマスのアフターグロー） */
+    --after:#0c2a3a; --after-line:#1d4a5a; --after-glow:#0a3a4a;
+    /* ===== テキスト ===== */
+    --text-main:#eaf3ff; --text-sub:#cdddef; --text-dim:#7a92b5;
+    /* ===== 半透明オーバーレイ（背景・縁の素材色） ===== */
+    --good-tint:rgba(125,255,176,.08);   /* バッジ地（good の極薄） */
+    --good-edge:rgba(125,255,176,.25);   /* バッジ縁グロー */
+    --good-glow:rgba(125,255,176,.4);    /* ゴール外周グロー */
+    --modal-1:rgba(10,20,48,.92);        /* モーダル中心（bg-mid 相当） */
+    --modal-2:rgba(2,3,10,.94);          /* モーダル外周（bg-deep 相当） */
+    --shade:rgba(0,0,0,.5);              /* 影・落ち込み */
+    --shade-deep:rgba(2,3,10,.9);        /* フレーム内縁の落ち込み */
+    --letterbox:#000;
+    /* 拍リズム提示（唯一の演出＝画面外周の青い枠）用の色 */
+    --beat-edge:#3aa6ff;                 /* 画面外周の拍枠の縁色（青） */
+    --beat-glow:rgba(58,166,255,.55);    /* 拍枠のグロー（青） */
+    /* ライフ（残機）UI 用の色 */
+    --life:#ff5577;                      /* ハートの色（赤） */
+    --life-empty:rgba(255,85,119,.18);   /* 失ったハート（薄赤） */
+    --life-edge:rgba(255,85,119,.5);     /* ハート枠グロー */
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html, body {
+    width:100%; height:100%;
+    overflow:hidden;
+    background:var(--letterbox);  /* letterbox 部分の色 */
+    color:var(--text-main);
+    font-family:'Helvetica Neue','Helvetica',system-ui,sans-serif;
+    font-variant-numeric:tabular-nums;
+    user-select:none;
+    -webkit-user-select:none;
+    -webkit-tap-highlight-color:transparent;
+    touch-action:none;
+  }
+  body {
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  #phone {
+    position:relative;
+    overflow:hidden;
+    /* 画面に収まる最大の 9:19.5 矩形 */
+    width:  min(100vw, calc(100vh * 9 / 19.5));
+    height: min(100vh, calc(100vw * 19.5 / 9));
+    --pw:   min(100vw, calc(100vh * 9 / 19.5));
+    --ph:   min(100vh, calc(100vw * 19.5 / 9));
+    --u:    calc(var(--pw) / 100); /* 1u  = phone 幅 1% */
+    --uh:   calc(var(--ph) / 100); /* 1uh = phone 高 1% */
+    /* 深色 radial 背景（中心輝度高→外周深色） */
+    background:
+      radial-gradient(120% 80% at 50% 18%, var(--bg-mid) 0%, var(--bg-deep) 62%),
+      var(--bg-deep);
+    display:flex; flex-direction:column;
+    box-shadow:inset 0 0 calc(var(--u)*30) var(--shade-deep);
+  }
+  /* 環境演出：薄いグリッドライン（拍非連動の静的下地） */
+  #phone::before{
+    content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: calc(var(--u)*18) calc(var(--u)*18);
+    background-position:center;
+    opacity:.18;
+    -webkit-mask-image:radial-gradient(75% 60% at 50% 42%,#000 0%,transparent 88%);
+            mask-image:radial-gradient(75% 60% at 50% 42%,#000 0%,transparent 88%);
+  }
+  /* ===== リズム提示その1：画面外周の青い枠（拍ごとにパッと出てフェード） ===== */
+  #beatFrame{
+    position:absolute; inset:calc(var(--u)*1.5); z-index:3; pointer-events:none;
+    border-radius:calc(var(--u)*6);
+    border:calc(var(--u)*.9) solid transparent;
+    box-shadow:0 0 0 transparent inset;
+    opacity:.0; transition:opacity .42s ease-out, box-shadow .42s ease-out;
+  }
+  #beatFrame.on{
+    opacity:1; border-color:var(--beat-edge);
+    box-shadow:inset 0 0 calc(var(--u)*12) var(--beat-glow),
+               0 0 calc(var(--u)*8) var(--beat-glow);
+    transition:opacity .05s ease-out, box-shadow .05s ease-out;
+  }
+  /* ===== リズム提示その2：上部の譜面ノートハイウェイ ===== */
+  /* 右→左に流れるボール(.note)が左端の判定ライン(#noteTarget)に重なる瞬間＝タップ最適タイミング。 */
+  /* 表示専用の演出。判定ロジック(inBeatWindow)には一切干渉しない。 */
+  #noteHighway{
+    position:absolute; left:calc(var(--u)*5); right:calc(var(--u)*5);
+    top:23%; height:8.5%;
+    z-index:4; pointer-events:none;
+    border-radius:calc(var(--u)*4);
+    border:1px solid var(--line);
+    background:
+      linear-gradient(90deg, rgba(58,166,255,.10) 0%, rgba(6,8,26,.55) 22%, rgba(6,8,26,.55) 100%),
+      var(--bg-panel);
+    box-shadow:inset 0 0 calc(var(--u)*4) var(--shade-deep),
+               0 0 calc(var(--u)*3) rgba(58,166,255,.12);
+    overflow:hidden;
+  }
+  /* レーンの中央ガイドライン（流れる軌道を示す静的な薄線） */
+  #noteHighway::after{
+    content:""; position:absolute; left:0; right:0; top:50%; height:1px;
+    transform:translateY(-50%);
+    background:linear-gradient(90deg, transparent, rgba(141,221,255,.18) 18%, rgba(141,221,255,.18) 100%);
+    pointer-events:none;
+  }
+  /* 判定ライン（ターゲット）：縦バー＋リング。ここにボールが重なる＝タップの瞬間 */
+  #noteTarget{
+    position:absolute; left:calc(var(--u)*8); top:0; height:100%;
+    width:0; z-index:2; pointer-events:none;
+  }
+  #noteTarget .bar{
+    position:absolute; left:50%; top:14%; height:72%; width:calc(var(--u)*.8);
+    transform:translateX(-50%);
+    background:linear-gradient(180deg, var(--cyan-soft), var(--cyan));
+    border-radius:calc(var(--u)*1);
+    box-shadow:0 0 calc(var(--u)*3) var(--cyan-soft);
+    opacity:.85;
+  }
+  #noteTarget .ring{
+    position:absolute; left:50%; top:50%;
+    width:calc(var(--u)*9); height:calc(var(--u)*9);
+    transform:translate(-50%,-50%);
+    border-radius:50%;
+    border:calc(var(--u)*.7) solid var(--cyan-soft);
+    box-shadow:0 0 calc(var(--u)*3) var(--cyan), inset 0 0 calc(var(--u)*2) var(--cyan);
+    opacity:.55;
+    transition:transform .05s ease-out, box-shadow .12s ease-out, opacity .12s ease-out;
+  }
+  /* 判定ライン到達時のフラッシュ（拍と同期して見える） */
+  #noteTarget.hit .ring{
+    opacity:1;
+    transform:translate(-50%,-50%) scale(1.28);
+    box-shadow:0 0 calc(var(--u)*7) var(--cyan), 0 0 calc(var(--u)*12) var(--cyan-soft),
+               inset 0 0 calc(var(--u)*3) var(--player-core);
+    border-color:var(--player-core);
+  }
+  /* 流れるボール（発光体） */
+  .note{
+    position:absolute; top:50%;
+    width:calc(var(--u)*6.4); height:calc(var(--u)*6.4);
+    margin-top:calc(var(--u)*-3.2);
+    border-radius:50%;
+    background:radial-gradient(circle at 38% 34%, var(--player-core), var(--cyan) 52%, var(--cyan-grad-2) 100%);
+    box-shadow:0 0 calc(var(--u)*3.5) var(--cyan), 0 0 calc(var(--u)*7) var(--cyan-soft);
+    will-change:left, transform, opacity;
+    pointer-events:none;
+  }
+  .note.arrive{
+    box-shadow:0 0 calc(var(--u)*6) var(--player-core), 0 0 calc(var(--u)*12) var(--cyan-soft);
+  }
+  /* ===== HUD ===== */
+  #hud{ position:absolute; top:0; left:0; width:100%;
+    display:flex; justify-content:space-between; align-items:flex-start;
+    padding:calc(var(--uh)*3) calc(var(--u)*5); z-index:6;
+    font-size:calc(var(--u)*4.2); color:var(--text-dim); letter-spacing:.05em; }
+  .hud-l{ display:flex; flex-direction:column; gap:calc(var(--uh)*1); }
+  .hud-r{ display:flex; flex-direction:column; align-items:flex-end; gap:calc(var(--uh)*1); }
+  /* ステージラベル：等幅数字＋ background-clip グラデ見出し */
+  #stageLabel{ font-size:calc(var(--u)*5.2); font-weight:800; letter-spacing:.12em;
+    background:linear-gradient(90deg,var(--cyan-grad-1),var(--cyan-soft));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    -webkit-text-fill-color:transparent; }
+  /* ステージゴールバッジ（07 Stage Goal Badges：操作理解 / 思考応用） */
+  #goalBadge{ display:inline-block; align-self:flex-start;
+    padding:calc(var(--uh)*.7) calc(var(--u)*3); border-radius:calc(var(--u)*6);
+    font-size:calc(var(--u)*3.1); font-weight:700; letter-spacing:.06em;
+    color:var(--good); border:1px solid var(--good);
+    background:var(--good-tint);
+    box-shadow:0 0 calc(var(--u)*3) var(--good-edge); }
+  /* テンポバッジ（このステージのリズム＝BPM を表示） */
+  #tempoBadge{ display:inline-block; align-self:flex-start;
+    margin-top:calc(var(--uh)*.6);
+    padding:calc(var(--uh)*.6) calc(var(--u)*2.6); border-radius:calc(var(--u)*6);
+    font-size:calc(var(--u)*2.9); font-weight:700; letter-spacing:.08em;
+    color:var(--beat-edge); border:1px solid var(--beat-edge);
+    background:rgba(58,166,255,.08);
+    box-shadow:0 0 calc(var(--u)*3) rgba(58,166,255,.25); }
+  /* ===== ライフ（残機）UI ===== */
+  #livesHud{
+    display:flex; gap:calc(var(--u)*1.8); align-items:center;
+    margin-top:calc(var(--uh)*.8);
+  }
+  .life-heart{
+    font-size:calc(var(--u)*5.2);
+    line-height:1;
+    filter:drop-shadow(0 0 calc(var(--u)*2) var(--life));
+    transition:transform .12s ease-out, opacity .2s ease-out;
+  }
+  .life-heart.lost{
+    opacity:.22;
+    filter:none;
+    transform:scale(.82);
+  }
+  /* 進捗ドット */
+  #progress{ display:flex; gap:calc(var(--u)*1.6); }
+  #progress .dot{ width:calc(var(--u)*2.4); height:calc(var(--u)*2.4); border-radius:50%;
+    background:var(--bg-card); border:1px solid var(--line); transition:all .25s; }
+  #progress .dot.done{ background:var(--cyan); border-color:var(--cyan-soft);
+    box-shadow:0 0 calc(var(--u)*3.5) var(--cyan-soft); }
+  #hint{ color:var(--beat-edge); font-size:calc(var(--u)*3.4); text-align:right;
+    max-width:calc(var(--u)*46); line-height:1.4; opacity:.9; }
+  /* ===== 盤面（パスを敷く領域） ===== */
+  #field{ position:absolute; inset:0; z-index:1; }
+  .cell{ position:absolute; width:calc(var(--u)*18); height:calc(var(--u)*18);
+    transform:translate(-50%,-50%);
+    border:1px solid var(--line); border-radius:calc(var(--u)*2.2);
+    background:radial-gradient(circle at 50% 38%, var(--bg-card), var(--bg-panel));
+    box-shadow:inset 0 0 calc(var(--u)*3) var(--shade);
+    transition:all .35s ease-out; }
+  /* 踏んだ瞬間の発光（強グロー） */
+  .cell.lit{
+    background:radial-gradient(circle at 50% 38%, var(--player-core), var(--cyan) 55%, var(--cyan-grad-2) 100%);
+    border-color:var(--player-core);
+    box-shadow:0 0 calc(var(--u)*7) var(--cyan),
+               0 0 calc(var(--u)*18) var(--cyan-soft),
+               inset 0 0 calc(var(--u)*4) var(--player-core);
+    transition:all .08s; }
+  /* 残光（消えゆくアフターグロー） */
+  .cell.fade{ background:var(--after); border-color:var(--after-line);
+    box-shadow:0 0 calc(var(--u)*2.5) var(--after-glow); transition:all .9s ease-out; }
+  .cell.goal{ border-color:var(--good);
+    box-shadow:0 0 calc(var(--u)*5) var(--good) inset, 0 0 calc(var(--u)*6) var(--good-glow); }
+  .cell.goal::after{ content:"★"; position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--good); font-size:calc(var(--u)*8); opacity:.8;
+    text-shadow:0 0 calc(var(--u)*4) var(--good);
+    animation:goalPulse 1.6s ease-in-out infinite; }
+  @keyframes goalPulse{ 50%{opacity:1; transform:scale(1.08);} }
+  /* 分岐セルの破線枠（方向ヒント・静的：リズムには連動しない） */
+  .cell.branch::before{ content:""; position:absolute; inset:0;
+    border-radius:inherit; border:calc(var(--u)*.6) dashed var(--beat); opacity:.5;
+    box-shadow:0 0 calc(var(--u)*3) var(--beat); }
+  /* ===== ランナー（操作対象＝矢印・リズム非連動） ===== */
+  #runner{
+    position:absolute;
+    width:calc(var(--u)*11); height:calc(var(--u)*11);
+    transform:translate(-50%,-50%) rotate(0deg);
+    /* 矢印形状（上向き三角形を基準として、回転で向きを変える） */
+    clip-path:polygon(50% 0%, 100% 100%, 50% 72%, 0% 100%);
+    background:linear-gradient(180deg, var(--player-core) 0%, var(--cyan) 55%, var(--cyan-grad-2) 100%);
+    filter:drop-shadow(0 0 calc(var(--u)*4) var(--cyan))
+           drop-shadow(0 0 calc(var(--u)*9) var(--cyan-soft));
+    z-index:5;
+    transition:left .18s ease-out, top .18s ease-out, transform .18s ease-out;
+  }
+  #judge{ position:absolute; left:50%; bottom:calc(var(--uh)*30);
+    transform:translateX(-50%); font-size:calc(var(--u)*7); font-weight:800;
+    letter-spacing:.04em; z-index:7; opacity:0; pointer-events:none; }
+  #judge.show{ animation:pop .6s ease-out; }
+  @keyframes pop{ 0%{opacity:0;transform:translateX(-50%) scale(.6);}
+    25%{opacity:1;transform:translateX(-50%) scale(1.1);}
+    100%{opacity:0;transform:translateX(-50%) scale(1);} }
+  /* ===== モーダル（05 Modal：READY / CLEAR / ALL CLEAR） ===== */
+  #modal{ position:absolute; inset:0; z-index:10; display:flex;
+    flex-direction:column; align-items:center; justify-content:center;
+    gap:calc(var(--uh)*2.4); text-align:center; padding:0 calc(var(--u)*8);
+    background:radial-gradient(120% 80% at 50% 35%, var(--modal-1), var(--modal-2));
+    backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
+  #modal.hide{ display:none; }
+  #mTitle{ font-size:calc(var(--u)*9); font-weight:800; letter-spacing:.06em;
+    background:linear-gradient(90deg,var(--cyan-grad-1),var(--cyan-soft),var(--beat));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    -webkit-text-fill-color:transparent;
+    filter:drop-shadow(0 0 calc(var(--u)*3) var(--cyan-soft)); }
+  #mText{ font-size:calc(var(--u)*4.4); color:var(--text-sub); line-height:1.7;
+    white-space:pre-line; }
+  #mBtn{ margin-top:calc(var(--uh)*1.5); padding:calc(var(--uh)*1.8) calc(var(--u)*12);
+    font-size:calc(var(--u)*5); color:var(--bg-deep); font-weight:800;
+    letter-spacing:.06em; border:none; border-radius:calc(var(--u)*10); cursor:pointer;
+    background:linear-gradient(90deg,var(--cyan),var(--beat));
+    box-shadow:0 0 calc(var(--u)*7) var(--cyan-soft),0 calc(var(--u)*1) calc(var(--u)*4) var(--shade);
+    transition:transform .12s, box-shadow .12s; }
+  #mBtn:active{ transform:translateY(calc(var(--u)*.6)) scale(.98);
+    box-shadow:0 0 calc(var(--u)*4) var(--cyan-soft); }
+  /* ===== ステージ開始オーバーレイ（2拍プレビュー → 3,2,1,Go!） ===== */
+  /* 各ステージのリズムを体感させてから入力受付を開始する。表示中は playing=false。 */
+  #startOverlay{ position:absolute; inset:0; z-index:9; pointer-events:none;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:calc(var(--uh)*2.6); text-align:center;
+    background:radial-gradient(120% 80% at 50% 42%, rgba(2,3,10,.30), rgba(2,3,10,.62)); }
+  #startOverlay.hide{ display:none; }
+  /* 中央：拍ごとに切り替わる大きな数字／文字（3 / 2 / 1 / Go!） */
+  #soMain{ min-height:calc(var(--u)*22); display:flex; align-items:center; justify-content:center;
+    font-size:calc(var(--u)*22); font-weight:800; line-height:1;
+    background:linear-gradient(90deg,var(--cyan-grad-1),var(--cyan-soft),var(--beat));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    -webkit-text-fill-color:transparent;
+    filter:drop-shadow(0 0 calc(var(--u)*4) var(--cyan-soft)); }
+  #soMain.tick{ animation:soPop .26s ease-out; }
+  @keyframes soPop{ 0%{opacity:.2; transform:scale(.55);}
+    35%{opacity:1; transform:scale(1.18);}
+    100%{opacity:1; transform:scale(1);} }
+  /* #soBeats（4拍プレビュードット）は廃止済み。非表示。 */
+  #soBeats{ display:none; }
+</style>
+</head>
+<body>
+  <div id="phone">
+    <div id="beatFrame"></div>
+    <!-- 上部の譜面ノートハイウェイ（リズム提示その2・表示専用） -->
+    <div id="noteHighway">
+      <div id="noteTarget"><span class="bar"></span><span class="ring"></span></div>
+    </div>
+    <div id="hud">
+      <div class="hud-l">
+        <span id="stageLabel">STAGE 1</span>
+        <span id="goalBadge">操作理解</span>
+        <span id="tempoBadge">♪ 60 BPM</span>
+        <!-- ライフ（残機）表示：ハート5個 -->
+        <div id="livesHud">
+          <span class="life-heart" id="h0">♥</span>
+          <span class="life-heart" id="h1">♥</span>
+          <span class="life-heart" id="h2">♥</span>
+          <span class="life-heart" id="h3">♥</span>
+          <span class="life-heart" id="h4">♥</span>
+        </div>
+      </div>
+      <div class="hud-r">
+        <span id="hint">青い枠の点滅に合わせてタップ</span>
+        <div id="progress"></div>
+      </div>
+    </div>
+    <div id="field"></div>
+    <div id="runner"></div>
+    <div id="judge"></div>
+    <!-- ステージ開始オーバーレイ（2拍プレビュー→3,2,1,Go!） -->
+    <div id="startOverlay" class="hide">
+      <div id="soMain"></div>
+      <!-- #soBeats は廃止済みのため非表示要素として残す（DOM参照互換用） -->
+      <div id="soBeats"></div>
+    </div>
+    <div id="modal" class="hide">
+      <div id="mTitle">光の床ランナー</div>
+      <div id="mText"></div>
+      <button id="mBtn">START</button>
+    </div>
+  </div>
+  <script>
+  (function(){
+    "use strict";
+    var phone=document.getElementById('phone');
+    var field=document.getElementById('field');
+    var runner=document.getElementById('runner');
+    var judge=document.getElementById('judge');
+    var beatFrame=document.getElementById('beatFrame');
+    var stageLabel=document.getElementById('stageLabel');
+    var goalBadge=document.getElementById('goalBadge');
+    var tempoBadge=document.getElementById('tempoBadge');
+    var progress=document.getElementById('progress');
+    var hint=document.getElementById('hint');
+    // 譜面ノートハイウェイ関連の要素
+    var noteHighway=document.getElementById('noteHighway');
+    var noteTarget=document.getElementById('noteTarget');
+    // ステージ開始オーバーレイ関連の要素
+    var startOverlay=document.getElementById('startOverlay');
+    var soMain=document.getElementById('soMain');
+    // ライフ（残機）UI 要素
+    var heartEls=[
+      document.getElementById('h0'),
+      document.getElementById('h1'),
+      document.getElementById('h2'),
+      document.getElementById('h3'),
+      document.getElementById('h4')
+    ];
+
+    // ===== ライフ（残機）管理 =====
+    var MAX_LIVES=5;
+    var lives=MAX_LIVES;
+
+    // ライフ UI 更新（lives 変数を元に hearts を再描画）
+    function renderLives(){
+      for(var i=0;i<heartEls.length;i++){
+        if(i<lives){
+          heartEls[i].classList.remove('lost');
+        } else {
+          heartEls[i].classList.add('lost');
+        }
+      }
+    }
+
+    // ライフをリセット（ステージ開始時に呼ぶ）
+    function resetLives(){
+      lives=MAX_LIVES;
+      renderLives();
+    }
+
+    // ライフを1つ減らす。0になったらゲームオーバー
+    // returns true if still alive, false if game over
+    function loseLife(){
+      if(lives>0) lives--;
+      renderLives();
+      return lives>0;
+    }
+
+    // ステージゴールバッジ文言（St1-3=操作理解 / St4-6=基礎応用 / St7-8=思考応用 /
+    //   St9-12=上級 / St13-16=達人 / St17-20=超絶）
+    var GOAL_LABEL=[
+      '操作理解',   // St1
+      '操作理解',   // St2
+      '操作理解',   // St3
+      '基礎応用',   // St4
+      '基礎応用',   // St5
+      '基礎応用',   // St6
+      '思考＋応用', // St7
+      '思考＋応用', // St8
+      '上級',       // St9
+      '上級',       // St10
+      '上級',       // St11
+      '上級',       // St12
+      '達人',       // St13
+      '達人',       // St14
+      '達人',       // St15
+      '達人',       // St16
+      '超絶',       // St17
+      '超絶',       // St18
+      '超絶',       // St19
+      '超絶'        // St20
+    ];
+
+    // HUD 進捗ドット（presentational のみ：現在 moveIdx を反映）
+    function renderProgress(){
+      progress.innerHTML='';
+      var steps=path.length-1;
+      for(var i=0;i<steps;i++){
+        var d=document.createElement('span');
+        d.className='dot'+(i<moveIdx?' done':'');
+        progress.appendChild(d);
+      }
+    }
+    var modal=document.getElementById('modal');
+    var mTitle=document.getElementById('mTitle');
+    var mText=document.getElementById('mText');
+    var mBtn=document.getElementById('mBtn');
+
+    // ===== 方向ベクトル（盤面: x=右, y=上） =====
+    var DIR={ UP:[0,1], RIGHT:[1,0], LEFT:[-1,0], DOWN:[0,-1] };
+    // 相対回転: CW(右フリック) / CCW(左フリック)
+    var CW ={ UP:'RIGHT', RIGHT:'DOWN', DOWN:'LEFT', LEFT:'UP' };
+    var CCW={ UP:'LEFT', LEFT:'DOWN', DOWN:'RIGHT', RIGHT:'UP' };
+    // facing → 矢印の回転角（上向き三角形を基準：UP=0deg, RIGHT=90deg, DOWN=180deg, LEFT=270deg）
+    var FACING_DEG={ UP:0, RIGHT:90, DOWN:180, LEFT:270 };
+
+    // ===== 固定ステージデータ（20ステージ）=====
+    // 学習曲線：St1-3 操作理解(1-3手) → St4-6 基礎応用(3-4手) → St7-8 思考応用(5手)
+    //   → St9-12 上級(6-8手) → St13-16 達人(8-10手) → St17-20 超絶(10-12手)
+    // 判定ウィンドウ半幅(ms): St1-3=±400ms / St4-6=±340ms / St7-8=±300ms /
+    //   St9-12=±260ms / St13-16=±230ms / St17-20=±200ms
+    // リズム(beatMs)はステージごとに固有。St1=ゆっくり(1000ms/60BPM) → St20=速い(450ms/133BPM)へ
+    // 段階的に加速し、学習曲線に沿った無理のないテンポ変化にする。
+    var STAGES=[
+      // ─── St1: 操作理解 ── タップのみ2手・最もゆっくり ──────────────────────────
+      { name:'STAGE 1', start:'UP', beatMs:1000,
+        moves:['tap','tap'],
+        hint:'青い枠＆上の譜面に合わせてタップで前進！' },
+      // ─── St2: 操作理解 ── タップ→右フリック 2手 ────────────────────────────
+      { name:'STAGE 2', start:'UP', beatMs:960,
+        moves:['tap','flickR'],
+        hint:'破線マスで右フリック！' },
+      // ─── St3: 操作理解 ── タップ→左フリック→タップ 3手 ────────────────────
+      { name:'STAGE 3', start:'UP', beatMs:920,
+        moves:['tap','flickL','tap'],
+        hint:'今度は左フリックで転換！' },
+      // ─── St4: 基礎応用 ── 右フリック×2 3手 ─────────────────────────────────
+      { name:'STAGE 4', start:'UP', beatMs:880,
+        moves:['tap','flickR','flickR'],
+        hint:'2回右フリックで方向を確かめて' },
+      // ─── St5: 基礎応用 ── 右フリック→タップ→左フリック 4手 ─────────────────
+      { name:'STAGE 5', start:'UP', beatMs:840,
+        moves:['tap','flickR','tap','flickL'],
+        hint:'曲がって直進してまた曲がる' },
+      // ─── St6: 基礎応用 ── 左→右フリック組み合わせ 4手 ─────────────────────
+      { name:'STAGE 6', start:'UP', beatMs:800,
+        moves:['flickL','tap','flickR','tap'],
+        hint:'最初から分岐！向きを読んで' },
+      // ─── St7: 思考応用 ── 5手（元St2ルート） ────────────────────────────────
+      { name:'STAGE 7', start:'UP', beatMs:760,
+        moves:['tap','flickR','flickL','tap','flickL'],
+        hint:'外周青枠＆上の譜面で拍を感じ向きを見極める' },
+      // ─── St8: 思考応用 ── 右×2→タップ→左→タップ 5手 ───────────────────────
+      { name:'STAGE 8', start:'UP', beatMs:720,
+        moves:['flickR','tap','flickL','tap','flickR'],
+        hint:'連続転換を制覇せよ' },
+      // ─── St9: 上級 ── 6手（Uターン含む） ───────────────────────────────────
+      { name:'STAGE 9', start:'UP', beatMs:680,
+        moves:['tap','flickR','tap','flickR','tap','flickL'],
+        hint:'リズムを刻みながら方向を読め' },
+      // ─── St10: 上級 ── 8手（全方向フリック） ────────────────────────
+      { name:'STAGE 10', start:'UP', beatMs:640,
+        moves:['tap','flickR','flickL','tap','flickR','tap','flickL','tap'],
+        hint:'全方向マスター！最後まで走り抜けろ' },
+      // ─── St11: 上級 ── 7手（連続左転換ジグザグ） ───────────────────────────
+      { name:'STAGE 11', start:'UP', beatMs:610,
+        moves:['tap','flickL','tap','flickL','tap','flickR','tap'],
+        hint:'左へジグザグ、リズムを切らすな' },
+      // ─── St12: 上級 ── 8手（開幕転換＋複合往復） ──────────────────────────
+      { name:'STAGE 12', start:'UP', beatMs:580,
+        moves:['flickR','tap','flickL','flickL','tap','flickR','tap','flickR'],
+        hint:'開幕から休みなく方向転換' },
+      // ─── St13: 達人 ── 8手（180°×2を織り込む） ───────────────────────────
+      { name:'STAGE 13', start:'UP', beatMs:555,
+        moves:['tap','flickR','flickR','tap','flickL','flickL','tap','flickR'],
+        hint:'2連フリックで180°、惑わされるな' },
+      // ─── St14: 達人 ── 9手（長いタップ直進＋鋭い転換） ──────────────────────
+      { name:'STAGE 14', start:'UP', beatMs:530,
+        moves:['tap','tap','flickR','tap','flickL','tap','flickR','tap','flickL'],
+        hint:'直進で油断するな、転換は鋭く' },
+      // ─── St15: 達人 ── 9手（交互フリックの連打） ───────────────────────────
+      { name:'STAGE 15', start:'UP', beatMs:510,
+        moves:['flickL','flickR','flickL','tap','flickR','flickL','tap','flickR','tap'],
+        hint:'左右交互、指が迷えばライフが減る' },
+      // ─── St16: 達人 ── 10手（全方向を網羅する周回） ────────────────────────
+      { name:'STAGE 16', start:'UP', beatMs:495,
+        moves:['tap','flickR','tap','flickR','tap','flickR','tap','flickL','tap','flickL'],
+        hint:'ぐるりと一周、最速の判断で' },
+      // ─── St17: 超絶 ── 10手（高速ジグザグ） ────────────────────────────────
+      { name:'STAGE 17', start:'UP', beatMs:485,
+        moves:['tap','flickR','flickL','tap','flickR','flickL','tap','flickR','flickL','tap'],
+        hint:'高速ジグザグ、リズムだけが頼り' },
+      // ─── St18: 超絶 ── 11手（180°と単転換の混在） ──────────────────────────
+      { name:'STAGE 18', start:'UP', beatMs:470,
+        moves:['flickR','tap','flickR','flickR','tap','flickL','tap','flickL','tap','flickR','tap'],
+        hint:'180°か90°か、一瞬で見極めろ' },
+      // ─── St19: 超絶 ── 11手（休みのない連続転換） ──────────────────────────
+      { name:'STAGE 19', start:'UP', beatMs:460,
+        moves:['flickL','flickR','tap','flickR','flickL','flickL','tap','flickR','tap','flickL','tap'],
+        hint:'息つく間もない連続転換の嵐' },
+      // ─── St20: 超絶 ── 12手（全要素総決算）・最も速い ──────────────────────
+      { name:'STAGE 20', start:'UP', beatMs:450,
+        moves:['tap','flickR','flickL','tap','flickR','flickR','tap','flickL','flickL','tap','flickR','tap'],
+        hint:'最終ステージ！全ての技を出し切れ' }
+    ];
+
+    // 判定ウィンドウ半幅：ステージ番号に応じて段階的に狭める
+    function getWinHalf(idx){
+      if(idx<=2) return 400;    // St1-3: 最寛容
+      if(idx<=5) return 340;    // St4-6: 少し厳しく
+      if(idx<=7) return 300;    // St7-8: 思考応用レベル
+      if(idx<=11) return 260;   // St9-12: 上級
+      if(idx<=15) return 230;   // St13-16: 達人
+      return 200;               // St17-20: 超絶
+    }
+
+    // ===== 拍タイミング設定 =====
+    // BEAT_MS は「現在のステージのリズム」。loadStage でステージ固有 beatMs に差し替える。
+    // 拍ループ・譜面ハイウェイ・判定ウィンドウは全てこの変数を参照し、ステージごとのリズムに追随する。
+    var BEAT_MS=1000;         // 現在ステージの1拍の長さ（loadStage で更新）
+    var beatTimer=null;
+    var stageIdx=0, moveIdx=0, facing='UP';
+    var path=[];              // 通過セル座標 [{x,y,branch,move}]
+    var cellEls=[];
+    var lastBeat=0;           // 直近の拍時刻
+    var playing=false;
+    var minX=0,maxX=0,minY=0,maxY=0;
+    var startSeq=null;        // 開始シーケンス（プレビュー+カウントダウン）のタイマー群
+
+    // ===== ランナーの向きを更新する =====
+    function updateRunnerFacing(f){
+      var deg=FACING_DEG[f]||0;
+      // left/top の translate(-50%,-50%) を維持しつつ rotate を付与
+      runner.style.transform='translate(-50%,-50%) rotate('+deg+'deg)';
+    }
+
+    // ===== パス生成（moves をたどって座標列を作る） =====
+    function buildPath(stage){
+      var x=0,y=0,dir=stage.start;
+      var cells=[{x:x,y:y,branch:false,move:null}];
+      for(var i=0;i<stage.moves.length;i++){
+        var mv=stage.moves[i];
+        var branch=(mv==='flickR'||mv==='flickL');
+        if(mv==='flickR') dir=CW[dir];
+        else if(mv==='flickL') dir=CCW[dir];
+        x+=DIR[dir][0]; y+=DIR[dir][1];
+        cells.push({x:x,y:y,branch:false,move:mv});
+        // 直前セルが分岐操作を要求する＝そのセルが branch
+        cells[i].branch=branch;
+      }
+      return cells;
+    }
+
+    function layout(){
+      field.innerHTML=''; cellEls=[];
+      minX=maxX=minY=maxY=0;
+      path.forEach(function(c){
+        if(c.x<minX)minX=c.x; if(c.x>maxX)maxX=c.x;
+        if(c.y<minY)minY=c.y; if(c.y>maxY)maxY=c.y;
+      });
+      var cols=maxX-minX+1, rows=maxY-minY+1;
+      var stepX=80/Math.max(cols,1);          // 盤面幅80%を割り当て
+      var stepY=Math.min(11, 52/Math.max(rows,1)); // 高さ方向の刻み(uh想定)
+      // 各セルの画面%座標を算出して保持
+      path.forEach(function(c,i){
+        var px=10 + ((c.x-minX)+0.5)*stepX;          // 左右マージン10%
+        var py=78 - ((c.y-minY)+0.5)*stepY*1.5;       // 下を起点に上へ
+        c.px=px; c.py=py;
+        var el=document.createElement('div');
+        el.className='cell';
+        if(c.branch) el.classList.add('branch');
+        if(i===path.length-1) el.classList.add('goal');
+        el.style.left=px+'%'; el.style.top=py+'%';
+        field.appendChild(el); cellEls.push(el);
+      });
+      placeRunner(0);
+    }
+
+    function placeRunner(i){
+      var c=path[i];
+      runner.style.left=c.px+'%';
+      runner.style.top=c.py+'%';
+      updateRunnerFacing(facing);
+    }
+
+    function litCell(i,goal){
+      var el=cellEls[i]; if(!el)return;
+      el.classList.remove('fade'); el.classList.add('lit');
+      setTimeout(function(){ el.classList.remove('lit'); el.classList.add('fade'); },150);
+    }
+
+    function showJudge(txt,col){
+      judge.textContent=txt; judge.style.color=col;
+      judge.classList.remove('show'); void judge.offsetWidth; judge.classList.add('show');
+    }
+
+    // ====================================================================
+    // ===== 譜面ノートハイウェイ（表示専用・判定ロジックには干渉しない） =====
+    // ====================================================================
+    // 設計：拍ごとに右端でボールを1つスポーンし、arriveTime（到達すべき拍時刻）を持たせる。
+    //   各フレームで progress = 1 - (arriveTime - now)/(LEAD*BEAT_MS) を算出し、
+    //   x位置を 右端(progress=0) → 判定ライン(progress=1) へ線形補間。
+    //   progress が 1 を少し超えたら除去。判定ライン到達(progress≈1)でフラッシュ。
+    //   span に常に現在の BEAT_MS を使うため、ステージのリズムが変わっても落下速度が追随する。
+    var LEAD=2;               // 先読み拍数（ボールは2拍先の拍に向けて出現）
+    var notes=[];             // アクティブなボール {el, arriveTime, hit}
+    var rafId=null;           // requestAnimationFrame ハンドル
+    var nextSpawnBeat=0;      // 次にスポーンすべきボールの到達拍時刻
+
+    function clearNotes(){
+      for(var i=0;i<notes.length;i++){
+        if(notes[i].el && notes[i].el.parentNode) notes[i].el.parentNode.removeChild(notes[i].el);
+      }
+      notes=[];
+    }
+
+    // ハイウェイ駆動を開始（startBeat と同期して呼ぶ、またはカウントダウン中から先行起動）
+    // firstArrive: 最初のノーツが判定ラインへ到達すべき時刻（省略時は lastBeat+LEAD*BEAT_MS）。
+    //   このゲームの開始演出では「Go! の1拍後」に最初のノーツが到達するよう firstArrive を渡す。
+    function startHighway(firstArrive){
+      stopHighway();
+      clearNotes();
+      // 最初のノーツの到達時刻（=最初の実拍）。以後 BEAT_MS ごとにスポーン予約。
+      nextSpawnBeat = (firstArrive !== undefined) ? firstArrive : (lastBeat + LEAD * BEAT_MS);
+      rafId=requestAnimationFrame(highwayLoop);
+    }
+    function stopHighway(){
+      if(rafId!=null){ cancelAnimationFrame(rafId); rafId=null; }
+    }
+
+    // ボールを1つスポーン（到達すべき拍時刻 arriveTime を持たせて右端に配置）
+    function spawnNote(arriveTime){
+      var el=document.createElement('div');
+      el.className='note';
+      el.style.left='100%';
+      noteHighway.appendChild(el);
+      notes.push({ el:el, arriveTime:arriveTime, hit:false });
+    }
+
+    // 判定ライン到達の瞬間にターゲットを軽くフラッシュ（外周青枠の点灯と同期して見える）
+    function flashTarget(){
+      noteTarget.classList.add('hit');
+      setTimeout(function(){ noteTarget.classList.remove('hit'); },110);
+    }
+
+    // rAF ループ：ハイウェイが起動中は常に描画（カウントダウン中も含む）
+    function highwayLoop(){
+      if(rafId===null) return;
+      var now=performance.now();
+      var span=LEAD*BEAT_MS;   // 現在ステージのリズムに追随（落下時間 = LEAD拍ぶん）
+
+      // 拍ごとに新しいボールをスポーン予約（到達拍時刻ベースで取りこぼしなく追従）
+      while(nextSpawnBeat - now <= span){
+        spawnNote(nextSpawnBeat);
+        nextSpawnBeat += BEAT_MS;
+      }
+
+      // 判定ラインの x 位置（%）。CSS の #noteTarget left:8u（=幅8%相当）に合わせる。
+      // ハイウェイ内座標は % で扱い、右端=100% → 判定ライン=TARGET_PCT% へ線形補間。
+      var TARGET_PCT=8; // noteTarget の中心位置（ハイウェイ幅に対する%。CSS left:calc(--u*8) ≒ 8%）
+
+      for(var i=notes.length-1;i>=0;i--){
+        var n=notes[i];
+        var progress=1 - (n.arriveTime - now)/span; // 0(右端)→1(判定ライン)
+        if(progress<0) progress=0;
+        // x を 100% → TARGET_PCT% へ補間
+        var x=100 + (TARGET_PCT-100)*progress;
+        n.el.style.left=x+'%';
+
+        // 判定ライン到達の瞬間に一度だけフラッシュ（演出のみ・判定には関与しない）
+        if(!n.hit && progress>=1){
+          n.hit=true;
+          n.el.classList.add('arrive');
+          flashTarget();
+        }
+        // 判定ラインを少し過ぎたら除去
+        if(progress>1.06){
+          if(n.el.parentNode) n.el.parentNode.removeChild(n.el);
+          notes.splice(i,1);
+        }
+      }
+
+      rafId=requestAnimationFrame(highwayLoop);
+    }
+
+    // ====================================================================
+    // ===== 1拍1減算 体力管理フラグ =====
+    // 各拍で「正しい入力が消費されたか」「既にこの拍でライフ減算したか」を追跡する。
+    //   beatConsumed:  true = この拍でプレイヤーが正しい入力を行い前進した
+    //   beatPenalized: true = この拍で既に loseLife() を呼んだ（二重減算防止）
+    // 新しい拍が来るたびに両フラグをリセット（startBeat の setInterval 内）。
+    // ====================================================================
+    var beatConsumed=false;   // 今拍で正しい入力（前進）が消費されたか
+    var beatPenalized=false;  // 今拍で既にライフ減算したか（二重防止）
+
+    // ===== 拍ループ =====
+    // resumeFromHighway: true のとき、stopBeat() でハイウェイを停止しない
+    //   （カウントダウン中から先行起動済みのハイウェイをそのまま引き継ぐ用途）
+    function startBeat(resumeFromHighway){
+      if(resumeFromHighway){
+        // ハイウェイはカウントダウン中に既に起動済み。beatTimer のみクリアして引き継ぐ。
+        if(beatTimer){clearInterval(beatTimer);beatTimer=null;}
+      } else {
+        stopBeat();   // ハイウェイも含めて完全停止（通常の再起動用）
+      }
+      lastBeat=performance.now();
+      beatConsumed=false;
+      beatPenalized=false;
+      pulse();
+      beatTimer=setInterval(function(){
+        // --- 拍終了判定：前の拍で入力が消費されず、まだ減算していなければ MISS ライフ減 ---
+        if(playing && !beatConsumed && !beatPenalized){
+          beatPenalized=true;
+          showJudge('MISS',getCSS('--text-dim'));
+          var alive=loseLife();
+          if(!alive){ gameOver(); return; }
+        }
+        // --- 新しい拍の開始 ---
+        lastBeat=performance.now();
+        beatConsumed=false;
+        beatPenalized=false;
+        pulse();
+      }, BEAT_MS);
+    }
+    function stopBeat(){
+      if(beatTimer){clearInterval(beatTimer);beatTimer=null;}
+      stopHighway();   // 譜面ハイウェイも停止
+      clearNotes();    // 流れているボールをクリア
+    }
+    // pulse: 拍の瞬間に「画面外周の青い枠（#beatFrame）」をパッと点灯させる。
+    //   これがリズム提示その1。譜面ハイウェイ（その2）と併存させ、タップ瞬間を分かりやすくする。
+    //   操作対象（.cell / #runner）にはリズム連動演出を与えない＝ボタン側は拍を示さない
+    function pulse(){
+      beatFrame.classList.add('on');
+      setTimeout(function(){
+        beatFrame.classList.remove('on');
+      },120);
+    }
+    function inBeatWindow(){
+      var w=getWinHalf(stageIdx);
+      var d=performance.now()-lastBeat;
+      return d<=w || (BEAT_MS-d)<=w;   // BEAT_MS は現在ステージのリズム
+    }
+
+    // ====================================================================
+    // ===== ゲームオーバー処理（ライフが0になったとき） =====
+    // ====================================================================
+    function gameOver(){
+      playing=false; stopBeat();
+      setTimeout(function(){
+        openModal(
+          'GAME OVER',
+          'ライフがなくなった！\nもう一度このステージに挑戦しよう',
+          'RETRY',
+          function(){ loadStage(stageIdx); }
+        );
+      },400);
+    }
+
+    // ====================================================================
+    // ===== ステージ開始シーケンス（2拍プレビュー → 3,2,1,Go! カウントダウン） =====
+    // ====================================================================
+    // タイミング設計（シーケンス開始を t=0、1拍を B とする）：
+    //   フェーズ1「2拍プレビュー」：t=0, t=B で外周青枠を点灯（テンポ体感・旧4拍→2拍）。
+    //   フェーズ2「3,2,1,Go!」：t=2B「3」/ t=3B「2」/ t=4B「1」/ t=5B「Go!」。
+    //   【要件1】Go!（t=5B）が表示された瞬間にオーバーレイを即座に隠し、playing=true。
+    //           → Go! の文字が出た直後にタップが可能になる（旧:Go!の1拍後に非表示）。
+    //   【要件2】ただし「プレイ開始＝最初のノーツ判定ライン到達＝最初の実拍」は Go! の1拍後（t=6B）。
+    //           startHighway(firstArrive=t=6B) でノーツを先行スポーンし、
+    //           LEAD=2拍かけて右端→判定ラインへ流れるため t=4B(=「1」表示)に出現し、
+    //           t=6B（Go!の1拍後）にちょうど判定ライン到達。startBeat の beatTimer 初回発火も t=6B。
+    //           → 「Go! 表示→1拍後にプレイ開始（最初のノーツ判定到達）」の整合が取れる。
+    //   シーケンス中は playing=false のため入力は受け付けない（拍だけ鳴らす）。
+    function clearStartSeq(){
+      if(startSeq){
+        for(var i=0;i<startSeq.length;i++) clearTimeout(startSeq[i]);
+        startSeq=null;
+      }
+    }
+    // setBeatDots: 廃止済み（#soBeats は display:none）。互換のため NOP として残す。
+    function setBeatDots(n){ /* NOP: #soBeats は廃止済み */ }
+    function soSetMain(txt){
+      soMain.textContent=txt;
+      soMain.classList.remove('tick'); void soMain.offsetWidth; soMain.classList.add('tick');
+    }
+    // 開始シーケンスを実行。beat = このステージの1拍ms。
+    //   onGo()  : Go! 表示の瞬間（t=5B）に呼ぶ＝playing=true・オーバーレイ非表示・拍ループ開始。
+    function runStartSequence(beat, onGo){
+      clearStartSeq();
+      startSeq=[];
+      playing=false;                 // シーケンス中は入力不可
+      startOverlay.classList.remove('hide');
+      soMain.textContent='';
+
+      // 拍を鳴らす（外周青枠を点灯）
+      function beatTick(){ pulse(); }
+
+      var t=0;
+      // --- フェーズ1：2拍プレビュー（外周青枠のみで2拍を刻む。旧4拍から短縮） ---
+      for(var k=0;k<2;k++){
+        (function(idx){
+          startSeq.push(setTimeout(function(){
+            beatTick();
+          }, t));
+        })(k);
+        t+=beat;
+      }
+      // --- フェーズ2：3 → 2 → 1 → Go!（同じリズムで1拍ごと） ---
+      // 「3」（t=2B）の瞬間にノーツハイウェイを先行起動。最初のノーツの到達時刻は
+      //   firstArrive = t=6B（=Go!の1拍後＝最初の実拍）に設定する。
+      // LEAD=2拍ぶんかけて流れるため、ノーツは t=4B(「1」)で出現→t=6B でライン到達。
+      // 「Go!」（t=5B）の瞬間に onGo() で playing=true・オーバーレイ非表示・startBeat()。
+      //   startBeat の beatTimer 初回発火は1拍後の t=6B となり、最初のノーツ到達と一致する。
+      var goTime=5*beat;             // Go! 表示時刻（シーケンス開始からの相対ms）
+      var labels=['3','2','1','Go!'];
+      for(var j=0;j<labels.length;j++){
+        (function(idx,label,tOffset){
+          startSeq.push(setTimeout(function(){
+            beatTick();
+            soSetMain(label);
+            // 「3」（idx=0）の瞬間：ノーツハイウェイを先行起動。
+            //   この時刻を基準に、最初のノーツの到達時刻を「Go!の1拍後」に予約する。
+            //   tOffset=2B（「3」表示）に対し、Go!=5B、その1拍後=6B → firstArrive=now+(6B-2B)=now+4B。
+            if(idx===0){
+              var now=performance.now();
+              startHighway(now + (6*beat - 2*beat)); // 最初のノーツ到達=Go!の1拍後
+            }
+            // 「Go!」（idx=3）の瞬間に本編開始。
+            //   要件1：オーバーレイを即座に隠してタップ可能化（playing=true）。
+            //   要件2：startBeat(true) の beatTimer 初回発火は1拍後＝最初のノーツ到達と一致。
+            if(idx===3){
+              onGo();
+            }
+          }, tOffset));
+        })(j, labels[j], t);
+        t+=beat;
+      }
+      // ※ Go! 後にオーバーレイを隠す setTimeout は廃止。
+      //    オーバーレイ非表示は onGo() 内で Go! 表示と同時に即座に行う（要件1）。
+    }
+
+    // ===== 入力処理 =====
+    // ポインターイベントのみ使用（マウスドラッグ＝フリックを確実に捕捉）。
+    // mousedown/mouseup・touchstart/touchend は登録しない（ダブルトリガー防止）。
+    // pointer-capture により #phone 外へはみ出したドラッグも確実に onUp まで追跡する。
+    var downX=0,downY=0,downId=null;
+
+    function onDown(e){
+      if(!playing) return;
+      // 複数ポインター（マルチタッチ）は最初の1本のみ受け付ける
+      if(downId!==null) return;
+      var p=point(e);
+      downX=p.x; downY=p.y; downId=p.id;
+      // ポインターキャプチャで #phone 外へのドラッグも確実に追跡
+      try{ phone.setPointerCapture(e.pointerId); }catch(err){}
+    }
+
+    function onUp(e){
+      if(!playing) return;
+      var p=point(e);
+      // down と同じポインターの up のみ処理
+      if(downId===null || p.id!==downId) return;
+      downId=null;
+      var dx=p.x-downX, dy=p.y-downY;
+      var dist=Math.hypot(dx,dy);
+      var FLICK=phone.clientWidth*0.06;
+      var input;
+      if(dist<FLICK){
+        input='tap';
+      } else if(Math.abs(dx)>=Math.abs(dy)){
+        // 水平成分が優勢 → フリック（左右）
+        input=(dx>0?'flickR':'flickL');
+      } else {
+        // 垂直成分が優勢（上下スワイプ）→ タップとして扱う
+        input='tap';
+      }
+      resolve(input);
+    }
+
+    function point(e){
+      var t=(e.changedTouches&&e.changedTouches[0])||e;
+      var r=phone.getBoundingClientRect();
+      // pointerId を id として使う（touch の場合は identifier、mouse は固定値）
+      var id=(e.pointerId!=null ? e.pointerId : (t.identifier!=null ? t.identifier : 'm'));
+      return { x:t.clientX-r.left, y:t.clientY-r.top, id:id };
+    }
+
+    function resolve(input){
+      // 拍ジャスト判定
+      if(!inBeatWindow()){
+        // 拍外のタップ：ミス → ライフ-1（まだこの拍でペナルティしていなければ）
+        if(!beatPenalized){
+          beatPenalized=true;
+          showJudge('MISS',getCSS('--text-dim'));
+          var alive=loseLife();
+          if(!alive){ gameOver(); return; }
+        }
+        return;
+      }
+      // この拍に入力があったことを記録（成否問わず：操作不一致でも拍内入力済み扱い）
+      // 操作不一致でも「この拍の入力機会は消費」として beatConsumed は立てない。
+      // beatConsumed は「正しく前進した場合のみ」true にし、
+      // 操作不一致では beatPenalized を立てて二重減算を防ぐ。
+      var need=path[moveIdx+1].move; // 次セルが要求する操作
+      if(input!==need){
+        // 操作不一致：ミス → ライフ-1（まだこの拍でペナルティしていなければ）
+        if(!beatPenalized){
+          beatPenalized=true;
+          showJudge('×',getCSS('--beat'));
+          var alive2=loseLife();
+          if(!alive2){ gameOver(); return; }
+        }
+        return;
+      }
+      // 成功：前進
+      beatConsumed=true;   // 正しい入力が消費された → この拍での無操作ペナルティなし
+      moveIdx++;
+      // facing 更新 → 矢印の向きを即時反映
+      if(need==='flickR') facing=CW[facing];
+      else if(need==='flickL') facing=CCW[facing];
+      updateRunnerFacing(facing);
+      litCell(moveIdx-1,false);
+      placeRunner(moveIdx);
+      renderProgress();
+      showJudge(need==='tap'?'JUST':'TURN!',getCSS('--good'));
+      if(moveIdx>=path.length-1) win();
+    }
+
+    function getCSS(v){
+      return getComputedStyle(document.documentElement).getPropertyValue(v).trim()||'#fff';
+    }
+
+    // ===== ステージ進行 =====
+    function loadStage(i){
+      stageIdx=i; moveIdx=0;
+      var st=STAGES[i]; facing=st.start;
+      BEAT_MS=st.beatMs;                       // ★ このステージ固有のリズムへ差し替え
+      path=buildPath(st);
+      stageLabel.textContent=st.name;
+      goalBadge.textContent=GOAL_LABEL[i]||'';
+      tempoBadge.textContent='♪ '+Math.round(60000/BEAT_MS)+' BPM'; // 現リズムを表示
+      hint.textContent=st.hint;
+      layout();
+      renderProgress();
+      resetLives();           // ★ ステージ開始時にライフを5機リセット
+      // 初期向きを矢印に反映
+      updateRunnerFacing(facing);
+
+      // 開始演出：このステージのリズムで「2拍プレビュー→3,2,1,Go!」を流してから本編開始。
+      // シーケンス中は playing=false で入力不可。
+      // Go! の瞬間（要件1）にオーバーレイを即座に隠し playing=true＝タップ可能化。
+      // 実際のプレイ開始（最初のノーツ判定到達＝拍ループ初回発火）は Go! の1拍後（要件2）。
+      playing=false;
+      stopBeat();
+      runStartSequence(BEAT_MS, function(){
+        // === Go! の瞬間に実行されるコールバック ===
+        // 要件1：オーバーレイを即座に隠してタップを可能にする
+        startOverlay.classList.add('hide');
+        soMain.textContent='';
+        beatConsumed=false;   // 開始時のフラグをクリア
+        beatPenalized=false;
+        playing=true;         // タップ受付開始
+        // 要件2：拍ループを開始。beatTimer の初回発火は1拍後＝最初のノーツ判定到達と一致。
+        //   true=ハイウェイはカウントダウン中に先行起動済み・そのまま引き継ぐ。
+        startBeat(true);
+      });
+    }
+
+    // クリアメッセージ（ステージごと）
+    var CLEAR_MSG=[
+      ['STAGE 1 CLEAR','タップの感触をつかんだ！','NEXT',1],
+      ['STAGE 2 CLEAR','フリック転換成功！','NEXT',2],
+      ['STAGE 3 CLEAR','左フリックもマスター！','NEXT',3],
+      ['STAGE 4 CLEAR','連続転換クリア！','NEXT',4],
+      ['STAGE 5 CLEAR','曲がって直進…完璧！','NEXT',5],
+      ['STAGE 6 CLEAR','開幕フリックを制覇！','NEXT',6],
+      ['STAGE 7 CLEAR','複合ルートを走破！','NEXT',7],
+      ['STAGE 8 CLEAR','連続転換マスター！','NEXT',8],
+      ['STAGE 9 CLEAR','上級ルート制覇！','NEXT',9],
+      ['STAGE 10 CLEAR','全方向8手を完走！','NEXT',10],
+      ['STAGE 11 CLEAR','ジグザグを乗り切った！','NEXT',11],
+      ['STAGE 12 CLEAR','休みなき転換を制覇！','NEXT',12],
+      ['STAGE 13 CLEAR','180°の罠を見破った！','NEXT',13],
+      ['STAGE 14 CLEAR','鋭い9手を完走！','NEXT',14],
+      ['STAGE 15 CLEAR','交互連打をマスター！','NEXT',15],
+      ['STAGE 16 CLEAR','周回ルート完全制覇！','NEXT',16],
+      ['STAGE 17 CLEAR','高速ジグザグ突破！','NEXT',17],
+      ['STAGE 18 CLEAR','180°と90°を見極めた！','NEXT',18],
+      ['STAGE 19 CLEAR','転換の嵐を切り抜けた！','NEXT',19],
+      ['ALL CLEAR','全20ステージ走破！\nリズムマスター達成','RETRY',0]
+    ];
+
+    function win(){
+      playing=false; stopBeat();
+      cellEls[cellEls.length-1].classList.add('lit');
+      setTimeout(function(){
+        var m=CLEAR_MSG[stageIdx];
+        openModal(m[0],m[1],m[2],function(){loadStage(m[3]);});
+      },500);
+    }
+
+    function openModal(title,text,btn,cb){
+      clearStartSeq();                 // 進行中の開始シーケンスがあれば停止
+      startOverlay.classList.add('hide');
+      mTitle.textContent=title; mText.textContent=text; mBtn.textContent=btn;
+      modal.classList.remove('hide');
+      mBtn.onclick=function(){ modal.classList.add('hide'); cb(); };
+    }
+
+    // ===== 起動 =====
+    // pointerdown/pointerup のみ登録。mousedown/mouseup・touchstart/touchend は不要
+    // （PointerEvent が mouse/touch 両方を統合するため。二重登録するとダブルトリガーになる）。
+    phone.addEventListener('pointerdown',onDown);
+    phone.addEventListener('pointerup',onUp);
+    // pointercancel でも down 状態を解放（ドラッグ中断対応）
+    phone.addEventListener('pointercancel',function(e){
+      var p=point(e);
+      if(downId!==null && p.id===downId) downId=null;
+    });
+
+    openModal('光の床ランナー',
+      '外周の青い枠＆上部の譜面が拍の合図。\n破線の分岐セルでは進む向きへ左右フリック。\nリズムに合わせて入力しないとライフが減る！','START',
+      function(){ loadStage(0); });
+  })();
+  </script>
+</body>
+</html>
