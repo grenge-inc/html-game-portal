@@ -5,3 +5,1447 @@
   PC で開いても常にこの比率を保ち、letterbox（左右黒帯）で中央表示。
   すべてのゲーム要素は #phone の子として配置すること。
 -->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>連鎖暴走方程式</title>
+<style>
+  :root {
+    --phone-aspect: 9 / 19.5;
+    --bg-deep: #02030a;
+    --bg-mid: #0a1430;
+    --bg-panel: #06081a;
+    --bg-card: #0b1228;
+    --line: #1a2848;
+    --cyan: #6ff;
+    --cyan-soft: #8df;
+    --cyan-grad-1: #3df;
+    --cyan-grad-2: #06a;
+    --hp-pink: #ff8aa0;
+    --warn: #ffb86c;
+    --text-main: #eaf3ff;
+    --text-sub: #cdddef;
+    --text-dim: #7a92b5;
+    --nova-9: #ffd76b;
+    --nova-7: #ffb24a;
+    --nova-5: #ff7a3a;
+    --nova-3: #ff5d8a;
+    --nova-1: #b585ff;
+    --nova-0: #ffffff;
+    --correct: #4fffb0;
+    --glow-cyan: 0 0 8px var(--cyan), 0 0 20px var(--cyan-grad-1);
+    --glow-gold: 0 0 8px var(--nova-9), 0 0 20px var(--nova-7);
+    --glow-correct: 0 0 8px var(--correct), 0 0 20px var(--correct);
+    --cyan-a30: rgba(102,255,255,0.3);
+    --cyan-a08: rgba(102,255,255,0.08);
+    --cyan-a40: rgba(102,255,255,0.4);
+    --cyan-a10: rgba(102,255,255,0.1);
+    --cyan-a20: rgba(102,255,255,0.2);
+    --correct-a15: rgba(79,255,176,0.15);
+    --correct-a12: rgba(79,255,176,0.12);
+    --correct-a25: rgba(79,255,176,0.25);
+    --bg-deep-a85: rgba(2,3,10,0.85);
+    --bg-deep-a92: rgba(2,3,10,0.92);
+    --bg-mid-a40: rgba(0,34,80,0.4);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html, body {
+    width:100%; height:100%;
+    overflow:hidden;
+    background: var(--bg-deep);
+    color: var(--nova-0);
+    font-family:'Helvetica Neue', system-ui, sans-serif;
+    user-select:none;
+    -webkit-user-select:none;
+    -webkit-tap-highlight-color:transparent;
+    touch-action:none;
+  }
+  body {
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  #phone {
+    position:relative;
+    overflow:hidden;
+    width:  min(100vw, calc(100vh * 9 / 19.5));
+    height: min(100vh, calc(100vw * 19.5 / 9));
+    --pw:   min(100vw, calc(100vh * 9 / 19.5));
+    --ph:   min(100vh, calc(100vw * 19.5 / 9));
+    --u:    calc(var(--pw) / 100);
+    --uh:   calc(var(--ph) / 100);
+    background:
+      radial-gradient(ellipse at 50% 10%, var(--bg-mid) 0%, var(--bg-deep) 65%),
+      radial-gradient(ellipse at 20% 80%, var(--bg-mid-a40) 0%, transparent 60%);
+  }
+
+  /* Wrong answer red flash on screen edge */
+  @keyframes wrong-flash {
+    0%   { box-shadow: inset 0 0 0px 0px rgba(255,0,0,0); }
+    40%  { box-shadow: inset 0 0 40px 20px rgba(255,0,0,0.75); }
+    100% { box-shadow: inset 0 0 0px 0px rgba(255,0,0,0); }
+  }
+  #phone.wrong-flash {
+    animation: wrong-flash 0.3s ease-out forwards;
+  }
+
+  /* HUD */
+  #hud {
+    position:absolute;
+    top:0; left:0; right:0;
+    height: calc(var(--uh) * 18);
+    padding: calc(var(--uh) * 2) calc(var(--u) * 4);
+    display:flex;
+    flex-direction:column;
+    gap: calc(var(--uh) * 0.8);
+    z-index:10;
+  }
+  #hud-top {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  #stage-label {
+    font-size: calc(var(--u) * 3.5);
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  /* IQ label hidden — number is now shown inside the gauge */
+  #iq-label {
+    display: none;
+  }
+  /* IQ bar wrapper — position:relative so we can overlay the number */
+  #iq-bar-wrap {
+    position: relative;
+    width:100%;
+    height: calc(var(--uh) * 3.6);
+    background: var(--bg-panel);
+    border-radius: calc(var(--u) * 2);
+    border: 1px solid var(--line);
+    overflow: visible;
+  }
+  #iq-bar {
+    height:100%;
+    width:0%;
+    background: linear-gradient(90deg, var(--cyan-grad-2), var(--cyan), var(--nova-9));
+    border-radius: calc(var(--u) * 2);
+    transition: width 0.4s ease;
+    box-shadow: 0 0 8px var(--cyan);
+  }
+  /* IQ number overlaid at center of gauge */
+  #iq-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: calc(var(--u) * 5.5);
+    font-weight: 700;
+    color: var(--nova-0);
+    text-shadow: 0 0 6px rgba(0,0,0,0.9), 0 0 12px var(--cyan);
+    pointer-events: none;
+    white-space: nowrap;
+    letter-spacing: 0.05em;
+    line-height: 1;
+  }
+
+  /* Hearts */
+  #hearts-row {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap: calc(var(--u) * 3);
+    padding-top: calc(var(--uh) * 0.5);
+  }
+  .heart {
+    font-size: calc(var(--u) * 6);
+    line-height:1;
+    transition: opacity 0.3s, filter 0.3s;
+    filter: drop-shadow(0 0 4px #ff6688);
+  }
+  .heart.lost {
+    opacity: 0.2;
+    filter: grayscale(1);
+  }
+  .heart.shake {
+    animation: heart-shake 0.4s ease;
+  }
+  @keyframes heart-shake {
+    0%{ transform: scale(1); }
+    25%{ transform: scale(1.4) rotate(-10deg); }
+    50%{ transform: scale(0.8) rotate(10deg); }
+    75%{ transform: scale(1.1); }
+    100%{ transform: scale(1); }
+  }
+
+  /* Stage area — scrollable container */
+  #stage-area-wrap {
+    position:absolute;
+    top: calc(var(--uh) * 19);
+    left: calc(var(--u) * 3);
+    right: calc(var(--u) * 3);
+    bottom: calc(var(--uh) * 20);
+    overflow:hidden;
+  }
+  #stage-area {
+    display:flex;
+    flex-direction:column;
+    gap: calc(var(--uh) * 1.5);
+    padding: calc(var(--uh) * 2) 0;
+  }
+
+  /* Equation row */
+  .eq-row {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap: calc(var(--u) * 2);
+    height: calc(var(--uh) * 9);
+    background: var(--bg-card);
+    border-radius: calc(var(--u) * 2.5);
+    border: 1px solid var(--line);
+    padding: 0 calc(var(--u) * 3);
+    flex-shrink:0;
+    opacity:0.4;
+    transition: opacity 0.3s, border-color 0.3s, box-shadow 0.3s;
+  }
+  .eq-row.active {
+    opacity:1;
+    border-color: var(--cyan);
+    box-shadow: 0 0 12px var(--cyan-a30);
+  }
+  .eq-row.solved {
+    opacity:1;
+    border-color: var(--correct);
+    box-shadow: 0 0 12px var(--correct-a25);
+  }
+  .eq-row.chain-flash {
+    animation: chain-flash 0.5s ease;
+  }
+  @keyframes chain-flash {
+    0%{ box-shadow: 0 0 30px var(--correct), 0 0 60px var(--correct); }
+    100%{ box-shadow: 0 0 12px var(--correct-a25); }
+  }
+
+  .num {
+    font-size: calc(var(--u) * 6);
+    font-weight: 700;
+    color: var(--text-main);
+    min-width: calc(var(--u) * 10);
+    text-align:center;
+    transition: font-size 0.3s, color 0.3s;
+  }
+  .num.incoming {
+    animation: num-incoming 0.5s cubic-bezier(0.34,1.56,0.64,1);
+    color: var(--correct);
+  }
+  @keyframes num-incoming {
+    0%{ transform: scale(0.2) translateY(-20px); opacity:0; }
+    100%{ transform: scale(1) translateY(0); opacity:1; }
+  }
+  .num.exploding {
+    animation: num-explode 0.8s ease forwards;
+  }
+  @keyframes num-explode {
+    0%{ transform: scale(1); opacity:1; }
+    60%{ transform: scale(3); opacity:1; color: var(--nova-9); text-shadow: 0 0 30px var(--nova-9); }
+    100%{ transform: scale(6); opacity:0; }
+  }
+
+  .eq-sign {
+    font-size: calc(var(--u) * 5);
+    color: var(--text-dim);
+    min-width: calc(var(--u) * 6);
+    text-align:center;
+  }
+  .eq-equals {
+    font-size: calc(var(--u) * 5);
+    color: var(--text-dim);
+    min-width: calc(var(--u) * 6);
+    text-align:center;
+  }
+  .ans {
+    font-size: calc(var(--u) * 6);
+    font-weight: 700;
+    color: var(--text-sub);
+    min-width: calc(var(--u) * 12);
+    text-align:center;
+  }
+
+  /* Operator blank (active clickable) */
+  .op-blank {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-width: calc(var(--u) * 10);
+    height: calc(var(--uh) * 6);
+    border-radius: calc(var(--u) * 1.5);
+    border: 2px solid var(--cyan);
+    background: var(--cyan-a08);
+    color: var(--cyan);
+    font-size: calc(var(--u) * 5);
+    font-weight: 700;
+    box-shadow: var(--glow-cyan);
+    animation: blink-glow 1.5s ease-in-out infinite;
+    cursor:pointer;
+  }
+  @keyframes blink-glow {
+    0%,100%{ box-shadow: 0 0 6px var(--cyan), 0 0 12px var(--cyan-grad-1); }
+    50%{ box-shadow: 0 0 16px var(--cyan), 0 0 32px var(--cyan-grad-1); }
+  }
+  .op-blank.locked {
+    pointer-events:none;
+  }
+
+  /* Op candidate panel */
+  #op-panel {
+    position:absolute;
+    bottom: calc(var(--uh) * 5);
+    left: calc(var(--u) * 4);
+    right: calc(var(--u) * 4);
+    height: calc(var(--uh) * 13);
+    display:flex;
+    align-items:center;
+    justify-content:space-around;
+  }
+  .op-btn {
+    width: calc(var(--u) * 19);
+    height: calc(var(--uh) * 10);
+    border-radius: calc(var(--u) * 3);
+    border: 2px solid var(--line);
+    background: var(--bg-card);
+    color: var(--text-main);
+    font-size: calc(var(--u) * 7);
+    font-weight: 700;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  }
+  .op-btn:hover {
+    border-color: var(--cyan);
+    box-shadow: 0 0 10px var(--cyan-a40);
+    transform: scale(1.05);
+  }
+  .op-btn.flash-correct {
+    animation: btn-correct 0.35s ease;
+  }
+  .op-btn.flash-wrong {
+    animation: btn-wrong 0.35s ease;
+  }
+  @keyframes btn-correct {
+    0%{ background: var(--correct); box-shadow: 0 0 30px var(--correct); transform: scale(1.15); }
+    100%{ background: var(--bg-card); }
+  }
+  @keyframes btn-wrong {
+    0%{ background: var(--nova-3); box-shadow: 0 0 20px var(--nova-3); }
+    50%{ transform: translateX(-4px); }
+    75%{ transform: translateX(4px); }
+    100%{ background: var(--bg-card); transform: translateX(0); }
+  }
+  .op-btn.disabled {
+    pointer-events:none;
+    opacity:0.4;
+  }
+  .op-btn.hidden {
+    visibility:hidden;
+    pointer-events:none;
+  }
+
+  /* IQ jump animation */
+  #iq-jump {
+    position:absolute;
+    top: calc(var(--uh) * 3);
+    right: calc(var(--u) * 4);
+    font-size: calc(var(--u) * 5);
+    font-weight: 700;
+    color: var(--nova-9);
+    text-shadow: var(--glow-gold);
+    opacity:0;
+    pointer-events:none;
+  }
+  #iq-jump.show {
+    animation: iq-jump-anim 1.2s ease forwards;
+  }
+  @keyframes iq-jump-anim {
+    0%{ opacity:1; transform: translateY(0); }
+    70%{ opacity:1; transform: translateY(calc(var(--uh) * -4)); }
+    100%{ opacity:0; transform: translateY(calc(var(--uh) * -6)); }
+  }
+
+  /* Final explosion overlay */
+  #explosion {
+    position:absolute;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    background: radial-gradient(circle, var(--correct-a15) 0%, var(--bg-deep-a85) 60%);
+    z-index:50;
+  }
+  #explosion.active { display:flex; }
+  #explosion-num {
+    font-size: calc(var(--u) * 14);
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--nova-9), var(--nova-5), var(--nova-1));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 20px var(--nova-7));
+    animation: explode-final 1.2s cubic-bezier(0.25,0.46,0.45,0.94) forwards;
+  }
+  @keyframes explode-final {
+    0%{ transform: scale(0.5); opacity:0; }
+    40%{ transform: scale(1.3); opacity:1; }
+    70%{ transform: scale(1.1); }
+    100%{ transform: scale(1); opacity:1; }
+  }
+  #explosion-label {
+    font-size: calc(var(--u) * 5);
+    color: var(--correct);
+    letter-spacing: 0.2em;
+    margin-top: calc(var(--uh) * 2);
+    text-shadow: 0 0 12px var(--correct);
+    opacity:0;
+    animation: fade-in-up 0.5s 0.8s ease forwards;
+  }
+  @keyframes fade-in-up {
+    from{ opacity:0; transform: translateY(10px); }
+    to{ opacity:1; transform: translateY(0); }
+  }
+  #explosion-iq {
+    font-size: calc(var(--u) * 4);
+    color: var(--nova-9);
+    margin-top: calc(var(--uh) * 1.5);
+    text-shadow: var(--glow-gold);
+    opacity:0;
+    animation: fade-in-up 0.5s 1.1s ease forwards;
+  }
+
+  /* Stage clear IQ display — shown in center after chain completes */
+  #stage-clear-iq {
+    position:absolute;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    gap: calc(var(--uh) * 2);
+    background: rgba(2,3,10,0.88);
+    z-index:55;
+  }
+  #stage-clear-iq.active { display:flex; }
+  #stage-clear-iq-label {
+    font-size: calc(var(--u) * 5);
+    color: var(--correct);
+    letter-spacing: 0.2em;
+    text-shadow: 0 0 12px var(--correct);
+    opacity:0;
+    animation: fade-in-up 0.4s 0.1s ease forwards;
+  }
+  #stage-clear-iq-value {
+    font-size: calc(var(--u) * 22);
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--nova-9), var(--nova-5), var(--nova-1));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 24px var(--nova-7));
+    opacity:0;
+    animation: iq-reveal 0.6s 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    line-height: 1;
+  }
+  @keyframes iq-reveal {
+    0%{ transform: scale(0.4); opacity:0; }
+    60%{ transform: scale(1.12); opacity:1; }
+    100%{ transform: scale(1); opacity:1; }
+  }
+  /* Perfect banner — shown only when IQ = 100 at stage clear */
+  #stage-clear-perfect {
+    font-size: calc(var(--u) * 8);
+    font-weight: 700;
+    color: var(--nova-9);
+    letter-spacing: 0.15em;
+    text-shadow: 0 0 20px var(--nova-7), 0 0 40px var(--nova-5);
+    opacity:0;
+    display:none;
+  }
+  #stage-clear-perfect.visible {
+    display:block;
+    animation: perfect-pop 0.6s 0.9s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  }
+  @keyframes perfect-pop {
+    0%{ transform: scale(0.5); opacity:0; }
+    60%{ transform: scale(1.15); opacity:1; }
+    100%{ transform: scale(1); opacity:1; }
+  }
+  #stage-clear-tap-hint {
+    font-size: calc(var(--u) * 3.5);
+    color: var(--text-dim);
+    letter-spacing: 0.12em;
+    opacity:0;
+    animation: fade-in-up 0.4s 1.5s ease forwards;
+  }
+
+  #next-btn {
+    margin-top: calc(var(--uh) * 4);
+    padding: calc(var(--uh) * 2) calc(var(--u) * 10);
+    border-radius: calc(var(--u) * 3);
+    border: 2px solid var(--correct);
+    background: var(--correct-a12);
+    color: var(--correct);
+    font-size: calc(var(--u) * 5);
+    font-weight: 700;
+    cursor:pointer;
+    opacity:0;
+    animation: fade-in-up 0.5s 1.4s ease forwards;
+    letter-spacing: 0.1em;
+  }
+  #next-btn:hover { background: var(--correct-a25); }
+
+  /* Game Over overlay */
+  #modal-gameover {
+    position:absolute;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    gap: calc(var(--uh) * 3);
+    background: rgba(2,3,10,0.95);
+    z-index:70;
+  }
+  #modal-gameover.active { display:flex; }
+  #gameover-title {
+    font-size: calc(var(--u) * 9);
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--nova-3), var(--nova-5));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 16px var(--nova-3));
+    letter-spacing: 0.1em;
+    animation: gameover-pop 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  }
+  @keyframes gameover-pop {
+    0%{ transform: scale(0.5); opacity:0; }
+    100%{ transform: scale(1); opacity:1; }
+  }
+  #gameover-sub {
+    font-size: calc(var(--u) * 4);
+    color: var(--text-dim);
+    letter-spacing: 0.12em;
+    opacity:0;
+    animation: fade-in-up 0.4s 0.4s ease forwards;
+  }
+  #retry-btn {
+    padding: calc(var(--uh) * 2) calc(var(--u) * 12);
+    border-radius: calc(var(--u) * 3);
+    border: 2px solid var(--hp-pink);
+    background: rgba(255,138,160,0.1);
+    color: var(--hp-pink);
+    font-size: calc(var(--u) * 5);
+    font-weight: 700;
+    cursor:pointer;
+    letter-spacing: 0.1em;
+    opacity:0;
+    animation: fade-in-up 0.4s 0.7s ease forwards;
+  }
+  #retry-btn:hover { background: rgba(255,138,160,0.2); }
+
+  /* Modal clear (after all stages) */
+  #modal-clear {
+    position:absolute;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    gap: calc(var(--uh) * 2.5);
+    background: var(--bg-deep-a92);
+    z-index:60;
+  }
+  #modal-clear.active { display:flex; }
+  #modal-title {
+    font-size: calc(var(--u) * 7);
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--nova-9), var(--nova-0));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 12px var(--nova-7));
+    letter-spacing: 0.1em;
+  }
+  #modal-iq-score {
+    font-size: calc(var(--u) * 5);
+    color: var(--cyan);
+    text-shadow: var(--glow-cyan);
+  }
+  #restart-btn {
+    padding: calc(var(--uh) * 2) calc(var(--u) * 12);
+    border-radius: calc(var(--u) * 3);
+    border: 2px solid var(--cyan);
+    background: var(--cyan-a10);
+    color: var(--cyan);
+    font-size: calc(var(--u) * 5);
+    font-weight: 700;
+    cursor:pointer;
+    letter-spacing: 0.1em;
+  }
+  #restart-btn:hover { background: var(--cyan-a20); }
+
+  /* Grid background ambient */
+  #bg-grid {
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    z-index:1;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: calc(var(--u) * 10) calc(var(--uh) * 5);
+    opacity:0.25;
+  }
+
+  /* particle canvas */
+  #particle-canvas {
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    z-index:5;
+  }
+
+  /* Stage goal badge */
+  #stage-goal {
+    position:absolute;
+    top: calc(var(--uh) * 18.5);
+    left: calc(var(--u) * 3);
+    right: calc(var(--u) * 3);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap: calc(var(--u) * 1.5);
+    z-index:10;
+  }
+  .goal-badge {
+    font-size: calc(var(--u) * 2.8);
+    color: var(--text-dim);
+    letter-spacing: 0.12em;
+    text-transform:uppercase;
+    border: 1px solid var(--line);
+    border-radius: calc(var(--u) * 5);
+    padding: calc(var(--uh) * 0.4) calc(var(--u) * 2.5);
+    background: var(--bg-panel);
+  }
+</style>
+</head>
+<body>
+  <div id="phone">
+    <div id="bg-grid"></div>
+    <canvas id="particle-canvas"></canvas>
+
+    <!-- HUD -->
+    <div id="hud">
+      <div id="hud-top">
+        <span id="stage-label">ST 1</span>
+        <span id="iq-label">IQ <span id="iq-val">80</span></span>
+      </div>
+      <div id="iq-bar-wrap">
+        <div id="iq-bar"></div>
+        <div id="iq-overlay">IQ <span id="iq-val-overlay">80</span></div>
+      </div>
+      <div id="hearts-row">
+        <span class="heart" id="heart-0">❤️</span>
+        <span class="heart" id="heart-1">❤️</span>
+        <span class="heart" id="heart-2">❤️</span>
+      </div>
+    </div>
+    <div id="iq-jump"></div>
+    <div id="stage-goal"><span class="goal-badge" id="goal-badge">操作理解＋コア体験</span></div>
+
+    <!-- Stage equation area (scrollable) -->
+    <div id="stage-area-wrap">
+      <div id="stage-area"></div>
+    </div>
+
+    <!-- Operator candidate buttons -->
+    <div id="op-panel">
+      <div class="op-btn" data-op="+">＋</div>
+      <div class="op-btn" data-op="-">－</div>
+      <div class="op-btn" data-op="×">×</div>
+      <div class="op-btn" data-op="÷">÷</div>
+    </div>
+
+    <!-- Chain explosion overlay -->
+    <div id="explosion">
+      <div id="explosion-num"></div>
+      <div id="explosion-label">CHAIN COMPLETE</div>
+      <div id="explosion-iq"></div>
+      <div id="next-btn">NEXT STAGE</div>
+    </div>
+
+    <!-- Stage clear IQ display overlay (shown before NEXT STAGE button) -->
+    <div id="stage-clear-iq">
+      <div id="stage-clear-iq-label">STAGE CLEAR</div>
+      <div id="stage-clear-iq-value">IQ 80</div>
+      <div id="stage-clear-perfect">パーフェクト！</div>
+      <div id="stage-clear-tap-hint">TAP TO CONTINUE</div>
+    </div>
+
+    <!-- Game Over modal -->
+    <div id="modal-gameover">
+      <div id="gameover-title">GAME OVER</div>
+      <div id="gameover-sub">IQ <span id="gameover-iq"></span></div>
+      <div id="retry-btn">RETRY</div>
+    </div>
+
+    <!-- All-clear modal -->
+    <div id="modal-clear">
+      <div id="modal-title">ALL CLEAR</div>
+      <div id="modal-iq-score">IQ <span id="final-iq"></span></div>
+      <div id="restart-btn">RESTART</div>
+    </div>
+  </div>
+
+<script>
+// ─── Stage Data ──────────────────────────────────────────────────
+// opRestrict: 'plus_minus' = +/- のみ, 'no_div' = ÷ 除外, null = 全演算子
+// 左辺制限ルール:
+//   ST1〜ST5: 左辺1桁（1〜9）のみ
+//   ST6〜ST9: 左辺12以下
+//   ST10: 左辺19以下
+//   全ステージ共通: ×が答えの問題は左辺1桁（1〜9）
+const STAGES = [
+  // ST 1: 操作理解＋コア体験（10手）
+  // 制約: 左辺1桁のみ / 演算子 +/-のみ
+  {
+    label: 'ST 1',
+    goal: '操作理解＋コア体験',
+    opRestrict: 'plus_minus',
+    equations: [
+      { left: 3, op: null, right: 2, ans: 5,  correctOp: '+' },
+      { left: 5, op: null, right: 3, ans: 2,  correctOp: '-' },
+      { left: 2, op: null, right: 4, ans: 6,  correctOp: '+' },
+      { left: 6, op: null, right: 1, ans: 5,  correctOp: '-' },
+      { left: 5, op: null, right: 2, ans: 7,  correctOp: '+' },
+      { left: 7, op: null, right: 3, ans: 4,  correctOp: '-' },
+      { left: 4, op: null, right: 5, ans: 9,  correctOp: '+' },
+      { left: 9, op: null, right: 4, ans: 5,  correctOp: '-' },
+      { left: 5, op: null, right: 1, ans: 6,  correctOp: '+' },
+      { left: 6, op: null, right: 2, ans: 8,  correctOp: '+' },
+    ],
+    blanks: [0,1,2,3,4,5,6,7,8,9],
+  },
+  // ST 2: 操作理解＋コア体験（10手）
+  // 制約: 左辺1桁のみ / 演算子 +/-のみ
+  {
+    label: 'ST 2',
+    goal: '操作理解＋コア体験',
+    opRestrict: 'plus_minus',
+    equations: [
+      { left: 4, op: null, right: 3, ans: 7,  correctOp: '+' },
+      { left: 7, op: null, right: 2, ans: 5,  correctOp: '-' },
+      { left: 5, op: null, right: 4, ans: 9,  correctOp: '+' },
+      { left: 9, op: null, right: 6, ans: 3,  correctOp: '-' },
+      { left: 3, op: null, right: 5, ans: 8,  correctOp: '+' },
+      { left: 8, op: null, right: 3, ans: 5,  correctOp: '-' },
+      { left: 5, op: null, right: 3, ans: 8,  correctOp: '+' },
+      { left: 8, op: null, right: 1, ans: 7,  correctOp: '-' },
+      { left: 7, op: null, right: 1, ans: 8,  correctOp: '+' },
+      { left: 8, op: null, right: 2, ans: 6,  correctOp: '-' },
+    ],
+    blanks: [0,1,2,3,4,5,6,7,8,9],
+  },
+  // ST 3: 操作理解＋コア体験（10手）
+  // 制約: 左辺1桁のみ / 演算子 +/-のみ
+  {
+    label: 'ST 3',
+    goal: '操作理解＋コア体験',
+    opRestrict: 'plus_minus',
+    equations: [
+      { left: 2, op: null, right: 6, ans: 8,  correctOp: '+' },
+      { left: 8, op: null, right: 5, ans: 3,  correctOp: '-' },
+      { left: 3, op: null, right: 4, ans: 7,  correctOp: '+' },
+      { left: 7, op: null, right: 5, ans: 2,  correctOp: '-' },
+      { left: 2, op: null, right: 7, ans: 9,  correctOp: '+' },
+      { left: 9, op: null, right: 3, ans: 6,  correctOp: '-' },
+      { left: 6, op: null, right: 2, ans: 8,  correctOp: '+' },
+      { left: 8, op: null, right: 4, ans: 4,  correctOp: '-' },
+      { left: 4, op: null, right: 3, ans: 7,  correctOp: '+' },
+      { left: 7, op: null, right: 6, ans: 1,  correctOp: '-' },
+    ],
+    blanks: [0,1,2,3,4,5,6,7,8,9],
+  },
+  // ST 4: 思考＋応用（12手）
+  // 制約: ÷ 除外 / 全問左辺1桁（1〜9）/ ×が答えの問題も左辺1桁かつ積9以下
+  {
+    label: 'ST 4',
+    goal: '思考＋応用',
+    opRestrict: 'no_div',
+    equations: [
+      { left: 3, op: null, right: 5,  ans: 8,  correctOp: '+' },
+      { left: 8, op: null, right: 3,  ans: 5,  correctOp: '-' },
+      { left: 5, op: null, right: 4,  ans: 9,  correctOp: '+' },
+      { left: 9, op: null, right: 6,  ans: 3,  correctOp: '-' },
+      { left: 3, op: null, right: 3,  ans: 9,  correctOp: '×' },
+      { left: 9, op: null, right: 6,  ans: 3,  correctOp: '-' },
+      { left: 3, op: null, right: 6,  ans: 9,  correctOp: '+' },
+      { left: 9, op: null, right: 4,  ans: 5,  correctOp: '-' },
+      { left: 5, op: null, right: 3,  ans: 8,  correctOp: '+' },
+      { left: 8, op: null, right: 5,  ans: 3,  correctOp: '-' },
+      { left: 3, op: null, right: 2,  ans: 6,  correctOp: '×' },
+      { left: 6, op: null, right: 3,  ans: 9,  correctOp: '+' },
+    ],
+    blanks: [0,1,2,3,4,5,6,7,8,9,10,11],
+  },
+  // ST 5: 思考＋応用（12手）
+  // 制約: ÷ 除外 / 全問左辺1桁（1〜9）/ ×が答えの問題も左辺1桁かつ積9以下
+  {
+    label: 'ST 5',
+    goal: '思考＋応用',
+    opRestrict: 'no_div',
+    equations: [
+      { left: 4, op: null, right: 5,  ans: 9,  correctOp: '+' },
+      { left: 9, op: null, right: 6,  ans: 3,  correctOp: '-' },
+      { left: 3, op: null, right: 3,  ans: 9,  correctOp: '×' },
+      { left: 9, op: null, right: 3,  ans: 6,  correctOp: '-' },
+      { left: 6, op: null, right: 3,  ans: 9,  correctOp: '+' },
+      { left: 9, op: null, right: 5,  ans: 4,  correctOp: '-' },
+      { left: 4, op: null, right: 2,  ans: 8,  correctOp: '×' },
+      { left: 8, op: null, right: 3,  ans: 5,  correctOp: '-' },
+      { left: 5, op: null, right: 4,  ans: 9,  correctOp: '+' },
+      { left: 9, op: null, right: 7,  ans: 2,  correctOp: '-' },
+      { left: 2, op: null, right: 4,  ans: 8,  correctOp: '×' },
+      { left: 8, op: null, right: 1,  ans: 9,  correctOp: '+' },
+    ],
+    blanks: [0,1,2,3,4,5,6,7,8,9,10,11],
+  },
+  // ST 6: 思考＋応用（13手）
+  // 制約: 全問左辺12以下 / ×が答えの問題は左辺1桁かつ積も12以下
+  {
+    label: 'ST 6',
+    goal: '思考＋応用',
+    opRestrict: null,
+    equations: [
+      { left: 2,  op: null, right: 6,  ans: 12,  correctOp: '×' },
+      { left: 12, op: null, right: 4,  ans: 3,   correctOp: '÷' },
+      { left: 3,  op: null, right: 4,  ans: 12,  correctOp: '×' },
+      { left: 12, op: null, right: 3,  ans: 4,   correctOp: '÷' },
+      { left: 4,  op: null, right: 2,  ans: 8,   correctOp: '×' },
+      { left: 8,  op: null, right: 4,  ans: 12,  correctOp: '+' },
+      { left: 12, op: null, right: 8,  ans: 4,   correctOp: '-' },
+      { left: 4,  op: null, right: 3,  ans: 12,  correctOp: '×' },
+      { left: 12, op: null, right: 6,  ans: 2,   correctOp: '÷' },
+      { left: 2,  op: null, right: 6,  ans: 8,   correctOp: '+' },
+      { left: 8,  op: null, right: 4,  ans: 12,  correctOp: '+' },
+      { left: 12, op: null, right: 4,  ans: 8,   correctOp: '-' },
+      { left: 8,  op: null, right: 4,  ans: 2,   correctOp: '÷' },
+    ],
+    blanks: [0,1,2,3,4,5,6,7,8,9,10,11,12],
+  },
+  // ST 7: 思考＋応用（13手）
+  // 制約: 全問左辺12以下 / ×が答えの問題は左辺1桁かつ積も12以下
+  {
+    label: 'ST 7',
+    goal: '思考＋応用',
+    opRestrict: null,
+    equations: [
+      { left: 3,  op: null, right: 4,  ans: 12,  correctOp: '×' },
+      { left: 12, op: null, right: 4,  ans: 3,   correctOp: '÷' },
+      { left: 3,  op: null, right: 9,  ans: 12,  correctOp: '+' },
+      { left: 12, op: null, right: 4,  ans: 8,   correctOp: '-' },
+      { left: 8,  op: null, right: 4,  ans: 2,   correctOp: '÷' },
+      { left: 2,  op: null, right: 6,  ans: 12,  correctOp: '×' },
+      { left: 12, op: null, right: 3,  ans: 4,   correctOp: '÷' },
+      { left: 4,  op: null, right: 8,  ans: 12,  correctOp: '+' },
+      { left: 12, op: null, right: 6,  ans: 6,   correctOp: '-' },
+      { left: 6,  op: null, right: 2,  ans: 12,  correctOp: '×' },
+      { left: 12, op: null, right: 4,  ans: 3,   correctOp: '÷' },
+      { left: 3,  op: null, right: 5,  ans: 8,   correctOp: '+' },
+      { left: 8,  op: null, right: 6,  ans: 2,   correctOp: '-' },
+    ],
+    blanks: [0,1,2,3,4,5,6,7,8,9,10,11,12],
+  },
+  // ST 8: 発展（15手）
+  // 制約: 全問左辺12以下 / ×が答えの問題は左辺1桁かつ積も12以下
+  {
+    label: 'ST 8',
+    goal: '発展',
+    opRestrict: null,
+    equations: [
+      { left: 4,  op: null, right: 3,  ans: 12,  correctOp: '×' },
+      { left: 12, op: null, right: 4,  ans: 3,   correctOp: '÷' },
+      { left: 3,  op: null, right: 4,  ans: 12,  correctOp: '×' },
+      { left: 12, op: null, right: 3,  ans: 4,   correctOp: '÷' },
+      { left: 4,  op: null, right: 8,  ans: 12,  correctOp: '+' },
+      { left: 12, op: null, right: 8,  ans: 4,   correctOp: '-' },
+      { left: 4,  op: null, right: 2,  ans: 8,   correctOp: '×' },
+      { left: 8,  op: null, right: 4,  ans: 12,  correctOp: '+' },
+      { left: 12, op: null, right: 4,  ans: 8,   correctOp: '-' },
+      { left: 8,  op: null, right: 2,  ans: 4,   correctOp: '÷' },
+      { left: 4,  op: null, right: 3,  ans: 12,  correctOp: '×' },
+      { left: 12, op: null, right: 6,  ans: 2,   correctOp: '÷' },
+      { left: 2,  op: null, right: 10, ans: 12,  correctOp: '+' },
+      { left: 12, op: null, right: 6,  ans: 6,   correctOp: '-' },
+      { left: 6,  op: null, right: 2,  ans: 12,  correctOp: '×' },
+    ],
+    blanks: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
+  },
+  // ST 9: 発展（15手）
+  // 制約: 全問左辺12以下 / ×が答えの問題は左辺1桁かつ積も12以下
+  {
+    label: 'ST 9',
+    goal: '発展',
+    opRestrict: null,
+    equations: [
+      { left: 6,  op: null, right: 2,  ans: 12,  correctOp: '×' },
+      { left: 12, op: null, right: 4,  ans: 3,   correctOp: '÷' },
+      { left: 3,  op: null, right: 4,  ans: 12,  correctOp: '×' },
+      { left: 12, op: null, right: 3,  ans: 4,   correctOp: '÷' },
+      { left: 4,  op: null, right: 3,  ans: 12,  correctOp: '×' },
+      { left: 12, op: null, right: 6,  ans: 2,   correctOp: '÷' },
+      { left: 2,  op: null, right: 6,  ans: 8,   correctOp: '+' },
+      { left: 8,  op: null, right: 4,  ans: 12,  correctOp: '+' },
+      { left: 12, op: null, right: 8,  ans: 4,   correctOp: '-' },
+      { left: 4,  op: null, right: 2,  ans: 8,   correctOp: '×' },
+      { left: 8,  op: null, right: 4,  ans: 4,   correctOp: '-' },
+      { left: 4,  op: null, right: 8,  ans: 12,  correctOp: '+' },
+      { left: 12, op: null, right: 4,  ans: 8,   correctOp: '-' },
+      { left: 8,  op: null, right: 2,  ans: 4,   correctOp: '÷' },
+      { left: 4,  op: null, right: 4,  ans: 8,   correctOp: '+' },
+    ],
+    blanks: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
+  },
+  // ST 10: 発展（15手）
+  // 制約: 全問左辺19以下 / ×が答えの問題は左辺1桁かつ積も19以下
+  {
+    label: 'ST 10',
+    goal: '発展',
+    opRestrict: null,
+    equations: [
+      { left: 9,  op: null, right: 2,  ans: 18,  correctOp: '×' },
+      { left: 18, op: null, right: 6,  ans: 3,   correctOp: '÷' },
+      { left: 3,  op: null, right: 14, ans: 17,  correctOp: '+' },
+      { left: 17, op: null, right: 8,  ans: 9,   correctOp: '-' },
+      { left: 9,  op: null, right: 2,  ans: 18,  correctOp: '×' },
+      { left: 18, op: null, right: 1,  ans: 19,  correctOp: '+' },
+      { left: 19, op: null, right: 7,  ans: 12,  correctOp: '-' },
+      { left: 12, op: null, right: 4,  ans: 3,   correctOp: '÷' },
+      { left: 3,  op: null, right: 16, ans: 19,  correctOp: '+' },
+      { left: 19, op: null, right: 4,  ans: 15,  correctOp: '-' },
+      { left: 15, op: null, right: 3,  ans: 5,   correctOp: '÷' },
+      { left: 5,  op: null, right: 3,  ans: 15,  correctOp: '×' },
+      { left: 15, op: null, right: 4,  ans: 19,  correctOp: '+' },
+      { left: 19, op: null, right: 9,  ans: 10,  correctOp: '-' },
+      { left: 10, op: null, right: 2,  ans: 5,   correctOp: '÷' },
+    ],
+    blanks: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
+  },
+];
+
+// ─── Game State ──────────────────────────────────────────────────
+const IQ_START = 80;  // ステージごとのIQスタート値
+let stageIdx = 0;
+let eqs = [];
+let activeBlankIdx = 0;
+let iqVal = IQ_START;
+const IQ_MIN = 50;   // ゲージの底値
+const iqMax = 100;
+let chainCount = 0;
+let isAnimating = false;
+let iqDecayTimer = null;
+let lives = 3;
+const MAX_LIVES = 3;
+
+// ─── DOM refs ────────────────────────────────────────────────────
+const stageArea    = document.getElementById('stage-area');
+const stageAreaWrap= document.getElementById('stage-area-wrap');
+const opBtns       = document.querySelectorAll('.op-btn');
+const iqValEl      = document.getElementById('iq-val');
+const iqValOverlay = document.getElementById('iq-val-overlay');
+const iqBarEl      = document.getElementById('iq-bar');
+const stageLabelEl = document.getElementById('stage-label');
+const iqJumpEl     = document.getElementById('iq-jump');
+const explosionEl  = document.getElementById('explosion');
+const explNumEl    = document.getElementById('explosion-num');
+const explIqEl     = document.getElementById('explosion-iq');
+const nextBtnEl    = document.getElementById('next-btn');
+const modalClear   = document.getElementById('modal-clear');
+const finalIqEl    = document.getElementById('final-iq');
+const restartBtn   = document.getElementById('restart-btn');
+const modalGameover= document.getElementById('modal-gameover');
+const gameoverIqEl = document.getElementById('gameover-iq');
+const retryBtn     = document.getElementById('retry-btn');
+const canvas       = document.getElementById('particle-canvas');
+const ctx          = canvas.getContext('2d');
+const phoneEl      = document.getElementById('phone');
+const stageClearIqEl      = document.getElementById('stage-clear-iq');
+const stageClearIqValueEl = document.getElementById('stage-clear-iq-value');
+const stageClearPerfectEl = document.getElementById('stage-clear-perfect');
+
+// ─── Color constants (mirrors CSS tokens for canvas) ─────────────
+const C_CORRECT = '#4fffb0';
+const C_CYAN    = '#6ff';
+const C_GOLD    = '#ffd76b';
+
+// ─── Particle system ─────────────────────────────────────────────
+let particles = [];
+function resizeCanvas() {
+  const ph = document.getElementById('phone');
+  canvas.width  = ph.offsetWidth;
+  canvas.height = ph.offsetHeight;
+}
+function spawnParticles(x, y, count, color) {
+  for(let i=0;i<count;i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 1.5 + Math.random() * 3;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 1,
+      decay: 0.02 + Math.random() * 0.02,
+      size: 2 + Math.random() * 4,
+      color
+    });
+  }
+}
+function animParticles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles = particles.filter(p => p.life > 0);
+  for(const p of particles) {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+    ctx.fill();
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.05;
+    p.life -= p.decay;
+  }
+  ctx.globalAlpha = 1;
+  requestAnimationFrame(animParticles);
+}
+
+// ─── Wrong answer red edge flash ──────────────────────────────────
+function triggerWrongFlash() {
+  phoneEl.classList.remove('wrong-flash');
+  void phoneEl.offsetWidth; // reflow to restart animation
+  phoneEl.classList.add('wrong-flash');
+  setTimeout(() => phoneEl.classList.remove('wrong-flash'), 350);
+}
+
+// ─── Hearts / Lives ──────────────────────────────────────────────
+function renderHearts() {
+  for(let i = 0; i < MAX_LIVES; i++) {
+    const h = document.getElementById('heart-' + i);
+    if(!h) continue;
+    if(i < lives) {
+      h.classList.remove('lost');
+    } else {
+      h.classList.add('lost');
+    }
+  }
+}
+
+function loseLife() {
+  if(lives <= 0) return;
+  lives--;
+  // Shake all remaining hearts
+  for(let i = 0; i < lives; i++) {
+    const h = document.getElementById('heart-' + i);
+    if(!h) continue;
+    h.classList.remove('shake');
+    void h.offsetWidth;
+    h.classList.add('shake');
+    setTimeout(() => h.classList.remove('shake'), 500);
+  }
+  renderHearts();
+  if(lives === 0) {
+    setTimeout(() => showGameOver(), 400);
+  }
+}
+
+function showGameOver() {
+  if(iqDecayTimer) clearInterval(iqDecayTimer);
+  gameoverIqEl.textContent = Math.round(iqVal);
+  modalGameover.classList.add('active');
+}
+
+// ─── IQ helpers ──────────────────────────────────────────────────
+function updateIqDisplay() {
+  iqVal = Math.max(IQ_MIN, Math.min(iqMax, iqVal));
+  const displayVal = Math.round(iqVal);
+  iqValEl.textContent = displayVal;
+  if(iqValOverlay) iqValOverlay.textContent = displayVal;
+  // Bar: IQ_MIN=0%, iqMax=100%
+  const barPct = ((iqVal - IQ_MIN) / (iqMax - IQ_MIN)) * 100;
+  iqBarEl.style.width = barPct + '%';
+}
+function addIq(amount) {
+  iqVal = Math.min(iqMax, iqVal + amount);
+  updateIqDisplay();
+  const jump = document.getElementById('iq-jump');
+  jump.textContent = '+' + amount;
+  jump.classList.remove('show');
+  void jump.offsetWidth;
+  jump.classList.add('show');
+}
+function startIqDecay() {
+  if(iqDecayTimer) clearInterval(iqDecayTimer);
+  // IQ減少: 2秒ごとに -1 IQ
+  iqDecayTimer = setInterval(() => {
+    if(iqVal > IQ_MIN) {
+      iqVal = Math.max(IQ_MIN, iqVal - 1);
+      updateIqDisplay();
+    }
+  }, 2000);
+}
+
+// ─── Auto-scroll active equation into view ────────────────────────
+function scrollActiveEqIntoView(rowEl) {
+  if(!rowEl || !stageAreaWrap) return;
+  // Calculate position relative to stageArea
+  const wrapHeight = stageAreaWrap.offsetHeight;
+  const rowTop = rowEl.offsetTop;
+  const rowHeight = rowEl.offsetHeight;
+  // Target scroll: center the row in the visible area
+  const targetScroll = rowTop - (wrapHeight / 2) + (rowHeight / 2);
+  stageAreaWrap.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
+}
+
+// ─── Operator panel visibility ────────────────────────────────────
+function applyOpRestrict(restrict) {
+  const btnPlus  = [...opBtns].find(b => b.dataset.op === '+');
+  const btnMinus = [...opBtns].find(b => b.dataset.op === '-');
+  const btnMul   = [...opBtns].find(b => b.dataset.op === '×');
+  const btnDiv   = [...opBtns].find(b => b.dataset.op === '÷');
+
+  // Reset all
+  [btnPlus, btnMinus, btnMul, btnDiv].forEach(b => { if(b) b.classList.remove('hidden'); });
+
+  if(restrict === 'plus_minus') {
+    // Show only + and -
+    if(btnMul) btnMul.classList.add('hidden');
+    if(btnDiv) btnDiv.classList.add('hidden');
+  } else if(restrict === 'no_div') {
+    // Hide ÷ only
+    if(btnDiv) btnDiv.classList.add('hidden');
+  }
+  // null = show all
+}
+
+// ─── Stage rendering ─────────────────────────────────────────────
+function buildStageDOM() {
+  stageArea.innerHTML = '';
+  stageAreaWrap.scrollTop = 0;
+  const stage = STAGES[stageIdx];
+  eqs = stage.equations.map((e, i) => Object.assign({}, e, {
+    solved: false,
+    isBlank: stage.blanks.includes(i),
+    activated: i === 0,
+  }));
+
+  eqs.forEach((eq, i) => {
+    const row = document.createElement('div');
+    row.className = 'eq-row' + (i === 0 ? ' active' : '');
+    row.id = 'eq-row-' + i;
+
+    // Left number
+    const leftNum = document.createElement('span');
+    leftNum.className = 'num';
+    leftNum.id = 'left-' + i;
+    leftNum.textContent = eq.left;
+    row.appendChild(leftNum);
+
+    // Operator
+    const opEl = document.createElement('span');
+    opEl.id = 'op-' + i;
+    if(eq.isBlank) {
+      opEl.className = 'op-blank';
+      opEl.textContent = '?';
+    } else {
+      opEl.className = 'eq-sign';
+      opEl.textContent = opSymbol(eq.op);
+    }
+    row.appendChild(opEl);
+
+    // Right number
+    const rightNum = document.createElement('span');
+    rightNum.className = 'num';
+    rightNum.textContent = eq.right;
+    row.appendChild(rightNum);
+
+    // Equals
+    const eq2 = document.createElement('span');
+    eq2.className = 'eq-equals';
+    eq2.textContent = '=';
+    row.appendChild(eq2);
+
+    // Answer
+    const ansEl = document.createElement('span');
+    ansEl.className = 'ans';
+    ansEl.id = 'ans-' + i;
+    ansEl.textContent = eq.ans;
+    row.appendChild(ansEl);
+
+    stageArea.appendChild(row);
+  });
+
+  // Dim rows that aren't active yet
+  for(let i = 1; i < eqs.length; i++) {
+    document.getElementById('eq-row-' + i).style.opacity = '0.2';
+  }
+
+  activeBlankIdx = 0;
+  stageLabelEl.textContent = stage.label;
+  const goalBadge = document.getElementById('goal-badge');
+  if(goalBadge) goalBadge.textContent = stage.goal;
+
+  // Reset IQ to 80 for each stage start
+  iqVal = IQ_START;
+  updateIqDisplay();
+  renderHearts();
+  applyOpRestrict(stage.opRestrict);
+
+  // Scroll first row into view
+  setTimeout(() => {
+    const firstRow = document.getElementById('eq-row-0');
+    if(firstRow) scrollActiveEqIntoView(firstRow);
+  }, 100);
+}
+
+function opSymbol(op) {
+  if(op === '+') return '＋';
+  if(op === '-') return '－';
+  if(op === '×') return '×';
+  if(op === '÷') return '÷';
+  return op || '?';
+}
+
+// ─── Chain logic ─────────────────────────────────────────────────
+function handleOpClick(selectedOp) {
+  if(isAnimating) return;
+  if(lives <= 0) return;
+  const eq = eqs[activeBlankIdx];
+  if(!eq || !eq.isBlank) return;
+
+  const correctOp = eq.correctOp;
+  const btn = [...opBtns].find(b => b.dataset.op === selectedOp);
+
+  if(selectedOp !== correctOp) {
+    // Wrong answer — flash screen edge red
+    if(btn) { btn.classList.add('flash-wrong'); setTimeout(()=>btn.classList.remove('flash-wrong'),400); }
+    triggerWrongFlash();
+    loseLife();
+    if(lives > 0) {
+      iqVal = Math.max(IQ_MIN, iqVal - 5);
+      updateIqDisplay();
+    }
+    return;
+  }
+
+  // Correct! — award IQ +2 immediately, reset decay timer to 2 seconds
+  addIq(2);
+  startIqDecay();
+
+  isAnimating = true;
+  lockOpBtns(true);
+  if(btn) { btn.classList.add('flash-correct'); setTimeout(()=>btn.classList.remove('flash-correct'),400); }
+
+  // Update eq
+  eq.solved = true;
+  eq.isBlank = false;
+  const opEl = document.getElementById('op-' + activeBlankIdx);
+  opEl.className = 'eq-sign';
+  opEl.textContent = opSymbol(selectedOp);
+
+  const rowEl = document.getElementById('eq-row-' + activeBlankIdx);
+  rowEl.classList.remove('active');
+  rowEl.classList.add('solved');
+
+  // Particle burst at row center
+  const rect = rowEl.getBoundingClientRect();
+  const phoneRect = document.getElementById('phone').getBoundingClientRect();
+  spawnParticles(rect.left - phoneRect.left + rect.width/2, rect.top - phoneRect.top + rect.height/2, 20, C_CORRECT);
+
+  chainCount++;
+
+  setTimeout(() => triggerChain(activeBlankIdx + 1, eq.ans), 300);
+}
+
+function triggerChain(nextIdx, incomingAns) {
+  if(nextIdx >= eqs.length) {
+    finishChain();
+    return;
+  }
+
+  const nextEq = eqs[nextIdx];
+  const rowEl = document.getElementById('eq-row-' + nextIdx);
+  const leftEl = document.getElementById('left-' + nextIdx);
+
+  // Show row
+  rowEl.style.opacity = '';
+  rowEl.classList.add('active');
+
+  // Animate incoming number
+  leftEl.textContent = incomingAns;
+  leftEl.classList.add('incoming');
+  setTimeout(() => leftEl.classList.remove('incoming'), 600);
+
+  const phoneRect = document.getElementById('phone').getBoundingClientRect();
+  const rect = rowEl.getBoundingClientRect();
+  spawnParticles(rect.left - phoneRect.left + rect.width/2, rect.top - phoneRect.top + rect.height/2, 12, C_CYAN);
+
+  // Auto-scroll to new active row
+  scrollActiveEqIntoView(rowEl);
+
+  if(!nextEq.isBlank) {
+    setTimeout(() => {
+      rowEl.classList.remove('active');
+      rowEl.classList.add('solved');
+      rowEl.classList.add('chain-flash');
+      setTimeout(() => rowEl.classList.remove('chain-flash'), 600);
+      chainCount++;
+      setTimeout(() => triggerChain(nextIdx + 1, nextEq.ans), 400);
+    }, 500);
+  } else {
+    // Stop chain — let player solve
+    isAnimating = false;
+    activeBlankIdx = nextIdx;
+    lockOpBtns(false);
+  }
+}
+
+function finishChain() {
+  const lastAns = eqs[eqs.length - 1].ans;
+  explNumEl.textContent = lastAns;
+
+  // IQ gain on completion overlay (chain bonus display only — per-question IQ already awarded)
+  const iqGain = chainCount;
+  explIqEl.textContent = 'IQ ＋' + iqGain;
+
+  const lastAnsEl = document.getElementById('ans-' + (eqs.length - 1));
+  if(lastAnsEl) lastAnsEl.classList.add('exploding');
+
+  setTimeout(() => {
+    explosionEl.classList.add('active');
+    const phoneRect = document.getElementById('phone').getBoundingClientRect();
+    spawnParticles(phoneRect.width/2, phoneRect.height/2, 60, C_GOLD);
+    spawnParticles(phoneRect.width/2, phoneRect.height/2, 40, C_CORRECT);
+  }, 400);
+
+  if(stageIdx < STAGES.length - 1) {
+    nextBtnEl.textContent = 'NEXT STAGE';
+  } else {
+    nextBtnEl.textContent = 'ALL CLEAR!';
+  }
+
+  // Show stage clear IQ display overlay after explosion appears
+  setTimeout(() => {
+    showStageClearIq();
+  }, 900);
+
+  isAnimating = false;
+}
+
+// ─── Stage clear IQ display ───────────────────────────────────────
+function showStageClearIq() {
+  const displayIq = Math.round(iqVal);
+  stageClearIqValueEl.textContent = 'IQ ' + displayIq;
+
+  // パーフェクト！表示: IQ100達成時のみ
+  stageClearPerfectEl.classList.remove('visible');
+  if(displayIq >= 100) {
+    stageClearPerfectEl.classList.add('visible');
+  }
+
+  stageClearIqEl.classList.add('active');
+}
+
+function hideStageClearIq() {
+  stageClearIqEl.classList.remove('active');
+  stageClearPerfectEl.classList.remove('visible');
+}
+
+function lockOpBtns(locked) {
+  opBtns.forEach(b => b.classList.toggle('disabled', locked));
+}
+
+// ─── Next stage / restart ─────────────────────────────────────────
+function goNextStage() {
+  hideStageClearIq();
+  explosionEl.classList.remove('active');
+  chainCount = 0;
+  if(stageIdx < STAGES.length - 1) {
+    stageIdx++;
+    // ハートをステージごとに3つに復帰
+    lives = MAX_LIVES;
+    // IQはbuildStageDOMで80にリセットされる
+    buildStageDOM();
+    lockOpBtns(false);
+  } else {
+    if(iqDecayTimer) clearInterval(iqDecayTimer);
+    finalIqEl.textContent = Math.round(iqVal);
+    modalClear.classList.add('active');
+  }
+}
+
+function restartGame() {
+  modalClear.classList.remove('active');
+  modalGameover.classList.remove('active');
+  hideStageClearIq();
+  stageIdx = 0;
+  iqVal = IQ_START;
+  chainCount = 0;
+  lives = MAX_LIVES;
+  buildStageDOM();
+  startIqDecay();
+  lockOpBtns(false);
+}
+
+// ─── Event listeners ─────────────────────────────────────────────
+opBtns.forEach(btn => {
+  btn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    handleOpClick(btn.dataset.op);
+  });
+});
+
+nextBtnEl.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  goNextStage();
+});
+
+// Tap stage-clear-iq overlay to proceed
+stageClearIqEl.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  goNextStage();
+});
+
+restartBtn.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  restartGame();
+});
+
+retryBtn.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  restartGame();
+});
+
+// ─── Init ─────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  resizeCanvas();
+  animParticles();
+  buildStageDOM();
+  startIqDecay();
+});
+window.addEventListener('resize', resizeCanvas);
+</script>
+</body>
+</html>
