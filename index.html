@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Grenge HTML Game Portal</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', system-ui, sans-serif; background: #0a0a14; color: #eaf3ff; min-height: 100vh; }
+  .header { padding: 1.5rem 1.5rem 1rem; border-bottom: 1px solid #1a2848; }
+  .header h1 { font-size: 1.4rem; font-weight: 700; color: #6ff; text-shadow: 0 0 12px #6ff; letter-spacing: .04em; }
+  .header p { font-size: 0.8rem; color: #7a92b5; margin-top: 4px; }
+  .search-bar { padding: 1rem 1.5rem 0.5rem; }
+  .search-bar input { width: 100%; max-width: 480px; padding: 8px 14px; font-size: 14px; background: #060818; border: 1px solid #1a2848; border-radius: 8px; color: #eaf3ff; outline: none; }
+  .search-bar input:focus { border-color: #6ff; }
+  .count { padding: 0.5rem 1.5rem; font-size: 13px; color: #7a92b5; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; padding: 0.5rem 1.5rem 2rem; }
+  .card { background: #060818; border: 1px solid #1a2848; border-radius: 12px; padding: 14px; cursor: pointer; text-decoration: none; display: block; transition: border-color .15s, transform .1s; }
+  .card:hover { border-color: #6ff; transform: translateY(-2px); }
+  .card .name { font-size: 13px; font-weight: 500; color: #eaf3ff; line-height: 1.4; word-break: break-word; }
+  .card .size { font-size: 11px; color: #4a6080; margin-top: 6px; }
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 100; align-items: center; justify-content: center; }
+  .modal-bg.active { display: flex; }
+  .modal { background: #060818; border: 1px solid #1a2848; border-radius: 12px; width: 94vw; max-width: 640px; height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+  .modal-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid #1a2848; flex-shrink: 0; }
+  .modal-title { flex: 1; font-size: 14px; font-weight: 500; color: #eaf3ff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .modal-close, .modal-open { background: none; border: 1px solid #1a2848; border-radius: 8px; padding: 5px 10px; font-size: 12px; cursor: pointer; color: #7a92b5; }
+  .modal-close:hover, .modal-open:hover { background: #0a1228; color: #eaf3ff; }
+  .modal-open { color: #6ff; border-color: #1a3848; }
+  iframe { flex: 1; border: none; width: 100%; background: #000; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🎮 Grenge HTML Game Portal</h1>
+  <p>40本のHTMLゲームをブラウザで遊べます</p>
+</div>
+<div class="search-bar">
+  <input type="text" id="search" placeholder="ゲームを検索..." oninput="filter()">
+</div>
+<div class="count" id="count">40 本</div>
+<div class="grid" id="grid"></div>
+
+<div class="modal-bg" id="modal" onclick="closeIfBg(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title"></span>
+      <a class="modal-open" id="modal-link" href="#" target="_blank">別タブ ↗</a>
+      <button class="modal-close" onclick="closeModal()">✕ 閉じる</button>
+    </div>
+    <iframe id="game-frame" src=""></iframe>
+  </div>
+</div>
+
+<script>
+const GAMES = [
+  {name:"チャージ一閃",file:"チャージ一閃.html",size:22},
+  {name:"連鎖割り雪崩（Chain Pop Avalanche）",file:"連鎖割り雪崩（Chain Pop Avalanche）.html",size:32},
+  {name:"カラーホールドトラップ",file:"カラーホールドトラップ.html",size:31},
+  {name:"連鎖落とし4目ローグ（チェイン・ドロップ・ローグ）",file:"連鎖落とし4目ローグ（チェイン・ドロップ・ローグ）.html",size:28},
+  {name:"元素連鎖反応（Element Chain Reaction）",file:"元素連鎖反応（Element Chain Reaction）.html",size:26},
+  {name:"グラビティ・テンウェル",file:"グラビティ・テンウェル.html",size:45},
+  {name:"ダイスチャージ・ダンジョン",file:"ダイスチャージ・ダンジョン.html",size:55},
+  {name:"カタカナしりとりソリティア",file:"カタカナしりとりソリティア.html",size:32},
+  {name:"連鎖暴走方程式",file:"連鎖暴走方程式.html",size:48},
+  {name:"コンボシュート",file:"コンボシュート.html",size:32},
+  {name:"崩落ドミノ連鎖",file:"崩落ドミノ連鎖.html",size:21},
+  {name:"磁力4方向4連",file:"磁力4方向4連.html",size:27},
+  {name:"クリスタルレゾナンス（Crystal Resonance）",file:"クリスタルレゾナンス（Crystal Resonance）.html",size:22},
+  {name:"花火大輪（HanabiBloom）",file:"花火大輪（HanabiBloom）.html",size:32},
+  {name:"★バースト連鎖リバーシ",file:"★バースト連鎖リバーシ.html",size:43},
+  {name:"磁力ホバー（Magnetic Hover 2048）",file:"磁力ホバー（Magnetic Hover 2048）.html",size:39},
+  {name:"方向連鎖パズル",file:"方向連鎖パズル.html",size:19},
+  {name:"紐引きアローソート",file:"紐引きアローソート.html",size:52},
+  {name:"紐引きチェーンパズル（ChainArrow）",file:"紐引きチェーンパズル（ChainArrow）.html",size:32},
+  {name:"グラビティスマッシュ (GravitySmash)",file:"グラビティスマッシュ (GravitySmash).html",size:55},
+  {name:"恐竜卵ソート（孵化演出）",file:"恐竜卵ソート（孵化演出）.html",size:36},
+  {name:"トリックライン・ワンスワイプ",file:"トリックライン・ワンスワイプ.html",size:39},
+  {name:"ワープ連鎖ソート",file:"ワープ連鎖ソート.html",size:25},
+  {name:"灯台の光集約（Lighthouse Convergence）",file:"灯台の光集約（Lighthouse Convergence）.html",size:45},
+  {name:"Arrow Sort Frozen Chain",file:"Arrow Sort Frozen Chain.html",size:25},
+  {name:"ドラッグ・マージライン（Drag Merge Line）",file:"ドラッグ・マージライン（Drag Merge Line）.html",size:24},
+  {name:"おとマシン",file:"おとマシン.html",size:32},
+  {name:"チェーンパンチ道場",file:"チェーンパンチ道場.html",size:37},
+  {name:"ネオン・ワンショット崩落（NeonOneShotCollapse）",file:"ネオン・ワンショット崩落（NeonOneShotCollapse）.html",size:34},
+  {name:"トレジャー・ロール（Treasure Roll）",file:"トレジャー・ロール（Treasure Roll）.html",size:38},
+  {name:"Drop 2048（ぽとぽと合体）",file:"Drop 2048（ぽとぽと合体）.html",size:29},
+  {name:"破裂で飛ばす",file:"破裂で飛ばす.html",size:23},
+  {name:"矢印スタックパズル",file:"矢印スタックパズル.html",size:70},
+  {name:"Arrow Sort Mirror Path",file:"Arrow Sort Mirror Path.html",size:22},
+  {name:"氷滑りソート",file:"氷滑りソート.html",size:25},
+  {name:"重力ルートクラッシュ",file:"重力ルートクラッシュ.html",size:35},
+  {name:"配線タワーディフェンス",file:"配線タワーディフェンス.html",size:81},
+  {name:"カーサバイバー（Car Survivor）",file:"カーサバイバー（Car Survivor）.html",size:63},
+  {name:"炎の連鎖滝（FlameChainFalls）",file:"炎の連鎖滝（FlameChainFalls）.html",size:19},
+  {name:"矢印ドミノ",file:"矢印ドミノ.html",size:23},
+];
+const BASE = 'games/';
+let filtered = [...GAMES];
+function filter(){
+  const q = document.getElementById('search').value.toLowerCase();
+  filtered = GAMES.filter(g => g.name.toLowerCase().includes(q));
+  render();
+}
+function render(){
+  document.getElementById('count').textContent = filtered.length + ' 本';
+  document.getElementById('grid').innerHTML = filtered.map(g =>
+    `<div class="card" onclick='play(${JSON.stringify(g)})'>
+      <div class="name">${g.name}</div>
+      <div class="size">${g.size} KB</div>
+    </div>`
+  ).join('');
+}
+function play(g){
+  document.getElementById('modal-title').textContent = g.name;
+  document.getElementById('game-frame').src = BASE + encodeURIComponent(g.file);
+  document.getElementById('modal-link').href = BASE + encodeURIComponent(g.file);
+  document.getElementById('modal').classList.add('active');
+}
+function closeModal(){
+  document.getElementById('modal').classList.remove('active');
+  document.getElementById('game-frame').src = '';
+}
+function closeIfBg(e){ if(e.target===document.getElementById('modal')) closeModal(); }
+render();
+</script>
+</body>
+</html>
