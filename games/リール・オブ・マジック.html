@@ -1,0 +1,1825 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>フィーバー昇華スロット</title>
+<style>
+:root{
+  --bg-deep:#03020e;--bg-mid:#0a0c30;--bg-panel:#06081a;
+  --bg-board-1:#0b0030;--bg-board-2:#1a0a55;
+  --line:#2a1a5a;--cyan:#6ff;--cyan-soft:#9eefff;--hp-pink:#ff8aa0;
+  --warn:#ffb86c;--text-main:#eaf3ff;--text-sub:#cdddef;--text-dim:#8b7ec0;
+  --nova-9:#ffe89a;--nova-7:#ffc14a;--nova-5:#ff9a3a;
+  --nova-3:#ff5d8a;--nova-1:#b585ff;--nova-0:#ffffff;
+  --enemy:#ff7da0;--boss:#ff3d6e;
+  --magic:#b585ff;--magic-soft:#e0b8ff;--magic-deep:#3a1880;
+  --gold:#ffd76b;--gold-bright:#fff3c0;--gold-deep:#a8740a;
+  --rune:#7fd6ff;
+  --skill-bg:#0d0b28;--skill-border:#4a3080;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg-deep);color:var(--text-main);
+  font-family:'Helvetica Neue',system-ui,sans-serif;user-select:none;
+  -webkit-user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none;}
+body{position:relative;display:flex;align-items:center;justify-content:center;}
+#phone{
+  position:relative;overflow:hidden;
+  width:min(100vw,calc(100vh*9/19.5));
+  height:min(100vh,calc(100vw*19.5/9));
+  --pw:min(100vw,calc(100vh*9/19.5));
+  --ph:min(100vh,calc(100vw*19.5/9));
+  --u:calc(var(--pw)/100);
+  --uh:calc(var(--ph)/100);
+  background:var(--bg-deep);
+}
+#bg{position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 60% 35% at 50% 88%,#2a0f6033,transparent 70%),
+    radial-gradient(ellipse 90% 65% at 50% 26%,#28116a 0%,#0c063a 48%,#05021a 76%,#020108 100%);}
+#bg::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background:
+    radial-gradient(circle at 50% 38%,transparent 30%,#5a2db022 31%,transparent 32%),
+    radial-gradient(circle at 50% 38%,transparent 41%,#7fd6ff14 42%,transparent 43%);}
+#bg.fever-bg{background:
+    radial-gradient(ellipse 70% 40% at 50% 88%,#5a3a0844,transparent 70%),
+    radial-gradient(ellipse 95% 70% at 50% 30%,#4a2e00 0%,#2a1a05 45%,#100a02 78%,#020100 100%);
+  transition:background .6s;}
+#stars-c{position:absolute;inset:0;pointer-events:none;}
+
+/* HUD */
+#hud{position:absolute;top:0;left:0;width:100%;padding:calc(var(--uh)*1.2) calc(var(--u)*3) calc(var(--uh)*0.8);z-index:6;}
+#stage-lbl{font-size:calc(var(--u)*2.8);text-align:center;letter-spacing:.22em;font-weight:700;
+  background:linear-gradient(90deg,var(--magic),var(--cyan-soft));-webkit-background-clip:text;
+  background-clip:text;-webkit-text-fill-color:transparent;text-transform:uppercase;}
+#enemy-row{display:flex;align-items:center;gap:calc(var(--u)*2);margin-top:calc(var(--uh)*0.6);}
+#enemy-nm{font-size:calc(var(--u)*3.6);font-weight:700;color:var(--enemy);white-space:nowrap;
+  text-shadow:0 0 calc(var(--u)*2.4) #ff7da077;}
+#hp-wrap{flex:1;}
+#hp-bg{height:calc(var(--uh)*1.5);background:#16002e;border-radius:99px;
+  border:1px solid #3a1050;box-shadow:inset 0 1px calc(var(--u)*0.8) #0008;overflow:hidden;}
+#hp-bar{height:100%;border-radius:99px;transition:width .4s cubic-bezier(.4,0,.2,1);position:relative;
+  background:linear-gradient(90deg,var(--boss),var(--enemy),var(--hp-pink));
+  box-shadow:0 0 calc(var(--u)*2.5) #ff5d8a99;}
+#hp-bar::after{content:'';position:absolute;inset:0;border-radius:99px;
+  background:linear-gradient(180deg,#ffffff55,transparent 55%);}
+#hp-txt{font-size:calc(var(--u)*2.9);color:var(--hp-pink);text-align:right;margin-top:calc(var(--uh)*0.3);
+  font-variant-numeric:tabular-nums;letter-spacing:.04em;}
+
+/* Lv & EXP バー（HUD下） */
+#lv-row{display:flex;align-items:center;gap:calc(var(--u)*2);margin-top:calc(var(--uh)*0.5);}
+#lv-txt{font-size:calc(var(--u)*3);font-weight:700;color:var(--gold);white-space:nowrap;min-width:calc(var(--u)*12);}
+#exp-bg{flex:1;height:calc(var(--uh)*1.2);background:#0d0025;border-radius:99px;border:1px solid #3a2060;overflow:hidden;}
+#exp-bar{height:100%;border-radius:99px;transition:width .4s ease;
+  background:linear-gradient(90deg,#b585ff,#ffd76b);
+  box-shadow:0 0 calc(var(--u)*1.5) #b585ff88;}
+#exp-txt{font-size:calc(var(--u)*2.4);color:var(--magic-soft);text-align:right;min-width:calc(var(--u)*12);}
+
+/* 取得済みスキルアイコン行 */
+#skill-row{display:flex;flex-wrap:wrap;gap:calc(var(--u)*1);margin-top:calc(var(--uh)*0.4);
+  min-height:calc(var(--uh)*3.5);padding:0 calc(var(--u)*1);}
+.skill-icon{display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(90,40,160,0.4);border:1px solid var(--skill-border);
+  border-radius:calc(var(--u)*1.5);padding:calc(var(--uh)*0.3) calc(var(--u)*1.5);
+  font-size:calc(var(--u)*2.2);color:var(--magic-soft);white-space:nowrap;}
+
+/* ═══════════════════════════════
+   フィーバーゲージ（レバー右横）
+   ═══════════════════════════════ */
+#fv-side{
+  position:absolute;
+  /* レバー行の右側：レバーは bottom:17uh, height 9uh → top = ph - 17uh - 9uh = ph - 26uh */
+  bottom:calc(var(--uh)*18.5);
+  right:calc(var(--u)*2);
+  width:calc(var(--u)*18);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:calc(var(--uh)*0.3);
+  z-index:7;
+}
+#fv-lbl{font-size:calc(var(--u)*2);letter-spacing:.14em;text-align:center;line-height:1.2;font-weight:700;
+  background:linear-gradient(180deg,var(--magic-soft),var(--magic));-webkit-background-clip:text;
+  background-clip:text;-webkit-text-fill-color:transparent;}
+#fv-magic{position:relative;width:calc(var(--u)*9);height:calc(var(--u)*9);
+  filter:drop-shadow(0 0 calc(var(--u)*1.2) #b585ff66);}
+#fv-magic.full{filter:drop-shadow(0 0 calc(var(--u)*2.5) #ffd76baa);animation:gauge-full 1.2s infinite;}
+#fv-magic svg{width:100%;height:100%;}
+#fv-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:calc(var(--u)*2.6);font-weight:700;color:var(--magic-soft);font-variant-numeric:tabular-nums;
+  text-shadow:0 0 calc(var(--u)*1.2) #b585ff88;}
+#fv-btn{display:none !important;}
+#fv-timer{font-size:calc(var(--u)*2.2);color:var(--gold);text-align:center;min-height:calc(var(--uh)*1.2);
+  font-weight:700;text-shadow:0 0 calc(var(--u)*1.2) #ffd76b66;}
+
+/* ═══════════════════════════════
+   敵ショーケース（リール上の隙間）
+   ═══════════════════════════════ */
+#enemy-showcase{
+  position:absolute;
+  top:calc(var(--uh)*14);
+  left:calc(var(--u)*3);
+  right:calc(var(--u)*3);
+  height:calc(var(--uh)*13);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:calc(var(--uh)*0.6);
+  z-index:5;
+  pointer-events:none;
+  background:linear-gradient(180deg,rgba(10,4,40,0.7),rgba(6,4,26,0.4));
+  border-radius:calc(var(--u)*2.5);
+  border:1px solid rgba(74,42,128,0.5);
+  padding:calc(var(--uh)*0.8) calc(var(--u)*2);
+}
+#enemy-showcase-icon{
+  font-size:calc(var(--u)*12);
+  line-height:1;
+  filter:drop-shadow(0 0 calc(var(--u)*3) #ff7da066);
+  animation:enemy-float 2.5s ease-in-out infinite;
+}
+#enemy-showcase-nm{
+  font-size:calc(var(--u)*4.5);
+  font-weight:700;
+  color:var(--enemy);
+  text-shadow:0 0 calc(var(--u)*2) #ff7da044;
+  white-space:nowrap;
+  letter-spacing:.04em;
+}
+/* 敵ショーケース内HPバー */
+#showcase-hp-wrap{
+  width:90%;
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  gap:calc(var(--uh)*0.25);
+}
+#showcase-hp-bg{
+  height:calc(var(--uh)*1.4);
+  background:#16002e;
+  border-radius:99px;
+  border:1px solid #3a1050;
+  box-shadow:inset 0 1px calc(var(--u)*0.6) #0008;
+  overflow:hidden;
+}
+#showcase-hp-bar{
+  height:100%;
+  border-radius:99px;
+  transition:width .4s cubic-bezier(.4,0,.2,1);
+  position:relative;
+  background:linear-gradient(90deg,var(--boss),var(--enemy),var(--hp-pink));
+  box-shadow:0 0 calc(var(--u)*2) #ff5d8a88;
+}
+#showcase-hp-bar::after{
+  content:'';position:absolute;inset:0;border-radius:99px;
+  background:linear-gradient(180deg,#ffffff44,transparent 55%);
+}
+#showcase-hp-txt{
+  font-size:calc(var(--u)*2.6);
+  color:var(--hp-pink);
+  text-align:center;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:.04em;
+}
+@keyframes enemy-float{
+  0%,100%{transform:translateY(0);}
+  50%{transform:translateY(calc(var(--uh)*-0.5));}}
+
+/* リール盤面（画面中央） */
+#reel-area{position:absolute;left:calc(var(--u)*3);right:calc(var(--u)*3);
+  top:calc(var(--uh)*27);height:calc(var(--uh)*26);
+  background:linear-gradient(180deg,var(--bg-board-1),var(--bg-board-2));
+  border:2px solid #4a2a80;border-radius:calc(var(--u)*3);overflow:hidden;
+  box-shadow:0 0 calc(var(--u)*3) #b585ff33,inset 0 0 calc(var(--u)*4) #00000099;
+  transition:border-color .5s,box-shadow .5s;}
+#reel-area::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:6;
+  box-shadow:inset 0 0 calc(var(--u)*5) #0008;
+  background:linear-gradient(180deg,#1a0a55cc,transparent 18%,transparent 82%,#0b0030cc);}
+#reel-area.fever-mode{border-color:var(--gold);
+  background:linear-gradient(180deg,#2a1505,#4a2e08);
+  box-shadow:0 0 calc(var(--u)*7) #ffd76baa,inset 0 0 calc(var(--u)*5) #4a2e0066;
+  animation:fever-glow 2s infinite;}
+#reel-area.fever-ready-mode{border-color:var(--gold);
+  box-shadow:0 0 calc(var(--u)*5) #ffd76b77,inset 0 0 calc(var(--u)*3) #4a2e0033;
+  animation:fever-glow 1.5s infinite;}
+#payline{position:absolute;top:50%;left:0;right:0;height:calc(var(--u)*0.5);
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+  box-shadow:0 0 calc(var(--u)*1.5) var(--cyan);
+  transform:translateY(-50%);pointer-events:none;z-index:5;}
+#reel-area.fever-mode #payline,#reel-area.fever-ready-mode #payline{background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  box-shadow:0 0 calc(var(--u)*2.5) var(--gold);}
+.rc{position:absolute;top:0;bottom:0;overflow:hidden;}
+.rc+.rc{border-left:1px solid #ffffff14;}
+#rc0{left:2%;width:30%;}#rc1{left:35%;width:30%;}#rc2{left:68%;width:30%;}
+.rstrip{position:absolute;top:0;left:0;right:0;}
+.sym{display:flex;align-items:center;justify-content:center;font-size:calc(var(--u)*8.5);line-height:1;
+  filter:drop-shadow(0 calc(var(--u)*0.4) calc(var(--u)*0.8) #0009);}
+#reel-area.fever-mode .sym{filter:drop-shadow(0 0 calc(var(--u)*1.5) #ffe89acc);}
+.sym.gold-seven{
+  filter:drop-shadow(0 0 calc(var(--u)*2) #ffd76b) drop-shadow(0 0 calc(var(--u)*4) #ffa500) !important;
+  animation:gold-seven-pulse .6s infinite alternate;
+}
+@keyframes gold-seven-pulse{
+  0%{filter:drop-shadow(0 0 calc(var(--u)*2) #ffd76b) drop-shadow(0 0 calc(var(--u)*4) #ffa500);}
+  100%{filter:drop-shadow(0 0 calc(var(--u)*4) #fff3c0) drop-shadow(0 0 calc(var(--u)*8) #ffd76b);}
+}
+
+/* ═══════════════════════════════
+   レバー＆ストップボタン
+   ═══════════════════════════════ */
+#lever-wrap{
+  position:absolute;
+  bottom:calc(var(--uh)*17);
+  left:calc(var(--u)*3);
+  right:calc(var(--u)*21);
+  display:flex;
+  justify-content:center;
+}
+#lever-btn{width:100%;height:calc(var(--uh)*9);border-radius:calc(var(--u)*5);
+  border:2px solid var(--cyan);background:linear-gradient(135deg,#0c1840,#1a2858);
+  font-size:calc(var(--u)*5.2);font-weight:700;color:var(--cyan);cursor:pointer;letter-spacing:.04em;
+  box-shadow:0 0 calc(var(--u)*3.5) #6ff5,inset 0 1px calc(var(--u)*1) #ffffff22;
+  display:flex;align-items:center;justify-content:center;transition:transform .1s,border-color .2s,color .2s;}
+#lever-btn:active{transform:scale(.96);}
+#lever-btn.spin-active{border-color:var(--nova-7);color:var(--nova-7);
+  background:linear-gradient(135deg,#2a1505,#3a2008);box-shadow:0 0 calc(var(--u)*3.5) #ffc14a55;}
+#lever-btn.disabled{border-color:#444;color:#444;box-shadow:none;}
+#lever-btn.fever-ready{border-color:var(--gold);color:var(--gold);
+  background:linear-gradient(135deg,#2a1500,#4a2e00);
+  box-shadow:0 0 calc(var(--u)*5) #ffd76baa,inset 0 1px calc(var(--u)*1) #ffe89a33;
+  animation:pulse-btn-gold 1s infinite;}
+
+/* 残スピン数 */
+#spin-counter{
+  position:absolute;
+  top:calc(var(--uh)*54);
+  left:0;right:0;
+  text-align:center;
+  z-index:6;
+  font-size:calc(var(--u)*4);
+  font-weight:700;
+  color:var(--text-sub);
+  letter-spacing:.06em;
+  pointer-events:none;
+}
+#spin-counter.warn{color:var(--warn);text-shadow:0 0 calc(var(--u)*1.5) #ffb86c55;}
+#spin-counter.danger{
+  color:var(--nova-3);text-shadow:0 0 calc(var(--u)*2) #ff5d8a77;
+  animation:spin-danger-pulse .7s ease-in-out infinite;}
+@keyframes spin-danger-pulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
+
+/* メッセージ */
+#msg-zone{position:absolute;bottom:calc(var(--uh)*12);left:0;right:0;text-align:center;
+  min-height:calc(var(--uh)*3.5);z-index:6;padding:0 calc(var(--u)*3);}
+#msg-txt{font-size:calc(var(--u)*3.7);font-weight:700;color:var(--gold);
+  text-shadow:0 0 calc(var(--u)*3) #ffd76b99;transition:transform .15s;}
+#msg-txt.pop{animation:msg-pop .4s;}
+
+/* ペイ表 */
+#paytbl{position:absolute;bottom:calc(var(--uh)*2);left:calc(var(--u)*3);right:calc(var(--u)*3);
+  display:flex;justify-content:space-around;padding:calc(var(--uh)*0.8) 0;
+  background:linear-gradient(180deg,#10082c99,#06041a99);border:1px solid var(--line);
+  border-radius:calc(var(--u)*2);}
+.pi{display:flex;flex-direction:column;align-items:center;gap:calc(var(--uh)*0.2);}
+.pi-s{font-size:calc(var(--u)*4.2);filter:drop-shadow(0 0 calc(var(--u)*0.8) #fff3);}
+.pi-v{font-size:calc(var(--u)*2.3);color:var(--gold);font-weight:700;font-variant-numeric:tabular-nums;}
+
+/* フィーバー演出 */
+#fv-flash{position:absolute;inset:0;background:#fff8;opacity:0;pointer-events:none;z-index:30;transition:opacity .15s;}
+#fv-overlay{position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 60% at 50% 40%,#ffd76b22,transparent 70%);
+  pointer-events:none;z-index:2;opacity:0;transition:opacity .5s;}
+
+/* フリーズ演出オーバーレイ */
+#freeze-overlay{
+  position:absolute;inset:0;pointer-events:none;z-index:40;
+  opacity:0;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.15) 2px,
+      rgba(0,0,0,0.15) 4px
+    );
+}
+#freeze-overlay.active{
+  animation:freeze-scanline 0.08s steps(1) infinite;
+}
+@keyframes freeze-scanline{
+  0%{opacity:.85;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.2) 2px,rgba(0,0,0,0.2) 4px);}
+  33%{opacity:.7;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.12) 3px,rgba(0,0,0,0.12) 5px);}
+  66%{opacity:.9;background:repeating-linear-gradient(0deg,transparent,transparent 1px,rgba(0,0,0,0.25) 1px,rgba(0,0,0,0.25) 3px);}
+}
+#freeze-flash{position:absolute;inset:0;pointer-events:none;z-index:45;opacity:0;background:white;}
+
+/* FEVER INCOMING テキスト演出 */
+#fever-incoming{
+  position:absolute;left:0;right:0;top:50%;transform:translateY(-50%) scale(0.2) rotate(-8deg);
+  z-index:48;pointer-events:none;opacity:0;text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:calc(var(--uh)*1);
+}
+#fever-incoming.show{animation:fever-incoming-anim 0.5s cubic-bezier(.1,1.4,.3,1) forwards;}
+#fever-incoming.hide{animation:fever-incoming-hide 0.3s ease-in forwards;}
+#fi-main{
+  font-size:calc(var(--u)*11);font-weight:900;letter-spacing:.06em;
+  background:linear-gradient(180deg,#fff8c0 0%,#ffd76b 40%,#ff9a3a 70%,#ff5d8a 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 calc(var(--u)*3) #ffd76b) drop-shadow(0 0 calc(var(--u)*6) #ff9a3a88);line-height:1;
+}
+#fi-sub{
+  font-size:calc(var(--u)*6.5);font-weight:800;color:#fff3c0;letter-spacing:.12em;
+  text-shadow:0 0 calc(var(--u)*3) #ffd76b,0 0 calc(var(--u)*6) #ffa50088;
+  filter:drop-shadow(0 calc(var(--u)*0.5) calc(var(--u)*1) #0008);
+}
+#fi-7s{font-size:calc(var(--u)*14);line-height:1;
+  filter:drop-shadow(0 0 calc(var(--u)*3) #ffd76b) drop-shadow(0 0 calc(var(--u)*7) #ffa500cc);
+  animation:fi-seven-spin 0.8s ease-out;letter-spacing:.1em;}
+@keyframes fever-incoming-anim{
+  0%{opacity:0;transform:translateY(-50%) scale(0.2) rotate(-8deg);}
+  60%{opacity:1;transform:translateY(-50%) scale(1.12) rotate(2deg);}
+  80%{transform:translateY(-50%) scale(0.96) rotate(-1deg);}
+  100%{opacity:1;transform:translateY(-50%) scale(1) rotate(0deg);}
+}
+@keyframes fever-incoming-hide{
+  0%{opacity:1;transform:translateY(-50%) scale(1) rotate(0deg);}
+  100%{opacity:0;transform:translateY(-50%) scale(1.3) rotate(5deg);}
+}
+@keyframes fi-seven-spin{
+  0%{transform:scale(0) rotate(-180deg);opacity:0;}
+  60%{transform:scale(1.2) rotate(10deg);opacity:1;}
+  100%{transform:scale(1) rotate(0deg);opacity:1;}
+}
+
+/* 波紋エフェクト */
+#ripple-container{position:absolute;inset:0;pointer-events:none;z-index:35;overflow:hidden;}
+.ripple-ring{position:absolute;border-radius:50%;border:3px solid;transform:translate(-50%,-50%) scale(0);opacity:0;}
+.ripple-ring.gold{border-color:#ffd76b;box-shadow:0 0 calc(var(--u)*2) #ffd76b;}
+.ripple-ring.white{border-color:#ffffff;box-shadow:0 0 calc(var(--u)*1.5) #ffffff88;}
+
+/* キラリ演出 */
+#kirari-overlay{position:absolute;inset:0;pointer-events:none;z-index:32;overflow:hidden;}
+.kirari-spark{
+  position:absolute;pointer-events:none;
+  animation:kirari-anim 0.6s ease-out forwards;
+}
+@keyframes kirari-anim{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(0) rotate(0deg);}
+  25%{opacity:1;transform:translate(-50%,-50%) scale(1.4) rotate(20deg);}
+  60%{opacity:0.8;transform:translate(-50%,-50%) scale(1) rotate(-10deg);}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(0.2) rotate(30deg);}
+}
+.kirari-star{
+  position:absolute;pointer-events:none;
+  animation:kirari-star-anim 0.5s ease-out forwards;
+}
+@keyframes kirari-star-anim{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(0);}
+  30%{opacity:1;transform:translate(-50%,-50%) scale(1.2);}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(0.1) translateY(-30px);}
+}
+
+/* レインボー枠フラッシュ */
+#rainbow-frame{
+  position:absolute;inset:0;pointer-events:none;z-index:33;
+  border-radius:calc(var(--u)*3);opacity:0;
+}
+#rainbow-frame.flash{animation:rainbow-frame-anim 1.2s ease-out forwards;}
+@keyframes rainbow-frame-anim{
+  0%{opacity:0;box-shadow:0 0 0 0px transparent,inset 0 0 0 0px transparent;}
+  15%{opacity:1;box-shadow:0 0 calc(var(--u)*6) calc(var(--u)*3) #ff0080,inset 0 0 calc(var(--u)*4) calc(var(--u)*1) #ff008088;}
+  30%{box-shadow:0 0 calc(var(--u)*8) calc(var(--u)*4) #ff8000,inset 0 0 calc(var(--u)*5) calc(var(--u)*2) #ff800088;}
+  45%{box-shadow:0 0 calc(var(--u)*8) calc(var(--u)*4) #ffff00,inset 0 0 calc(var(--u)*5) calc(var(--u)*2) #ffff0088;}
+  60%{box-shadow:0 0 calc(var(--u)*8) calc(var(--u)*4) #00ff80,inset 0 0 calc(var(--u)*5) calc(var(--u)*2) #00ff8088;}
+  75%{box-shadow:0 0 calc(var(--u)*8) calc(var(--u)*4) #0080ff,inset 0 0 calc(var(--u)*5) calc(var(--u)*2) #0080ff88;}
+  90%{box-shadow:0 0 calc(var(--u)*6) calc(var(--u)*3) #8000ff,inset 0 0 calc(var(--u)*4) calc(var(--u)*1) #8000ff88;}
+  100%{opacity:0;box-shadow:0 0 0 0px transparent,inset 0 0 0 0px transparent;}
+}
+
+/* ═══════════════════════════════
+   スキル選択モーダル
+   ═══════════════════════════════ */
+#mod-skill{position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.88);z-index:60;}
+#mod-skill.show{display:flex;}
+#skill-modal-box{width:calc(var(--u)*88);border-radius:calc(var(--u)*4);
+  padding:calc(var(--uh)*2.5) calc(var(--u)*4);
+  background:linear-gradient(135deg,#0e0930,#201060);
+  border:2px solid var(--magic-soft);
+  box-shadow:0 0 calc(var(--u)*8) #b585ff55;}
+#skill-modal-box .mbox-in-anim{animation:mbox-in .4s cubic-bezier(.2,1.2,.4,1);}
+#skill-modal-title{font-size:calc(var(--u)*6);font-weight:900;text-align:center;
+  background:linear-gradient(90deg,var(--magic-soft),var(--gold));
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:calc(var(--uh)*0.5);}
+#skill-modal-sub{font-size:calc(var(--u)*3);color:var(--text-sub);text-align:center;
+  margin-bottom:calc(var(--uh)*1.5);}
+.skill-choice{width:100%;margin-bottom:calc(var(--uh)*1.2);
+  padding:calc(var(--uh)*1.5) calc(var(--u)*4);
+  background:rgba(30,10,70,0.8);border:2px solid var(--skill-border);
+  border-radius:calc(var(--u)*3);cursor:pointer;text-align:left;
+  transition:border-color .15s,background .15s;}
+.skill-choice:hover,.skill-choice:active{border-color:var(--magic-soft);background:rgba(60,20,120,0.85);}
+.skill-choice-name{font-size:calc(var(--u)*3.8);font-weight:700;color:var(--magic-soft);
+  margin-bottom:calc(var(--uh)*0.4);}
+.skill-choice-desc{font-size:calc(var(--u)*3);color:var(--text-sub);}
+
+/* モーダル共通 */
+.modal{position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+  background:#000b;z-index:50;}
+.modal.show{display:flex;}
+.mbox{width:calc(var(--u)*82);border-radius:calc(var(--u)*4);
+  padding:calc(var(--uh)*3) calc(var(--u)*5);text-align:center;}
+.modal.show .mbox{animation:mbox-in .4s cubic-bezier(.2,1.2,.4,1);}
+.mbox-win{background:linear-gradient(135deg,#120a30,#241560);
+  border:2px solid var(--gold);box-shadow:0 0 calc(var(--u)*6) #ffd76b55;}
+.mbox-lose{background:linear-gradient(135deg,#300808,#601515);
+  border:2px solid #ff4444;box-shadow:0 0 calc(var(--u)*6) #ff444455;}
+.mbox-clear{background:linear-gradient(135deg,#120a30,#2a1a66);
+  border:2px solid var(--magic-soft);box-shadow:0 0 calc(var(--u)*6) #e0b8ff55;}
+.mtitle{font-size:calc(var(--u)*7.5);font-weight:700;margin-bottom:calc(var(--uh)*1);
+  color:var(--gold);text-shadow:0 0 calc(var(--u)*3) #ffd76b88;}
+.mtitle-lose{font-size:calc(var(--u)*7.5);font-weight:700;margin-bottom:calc(var(--uh)*1);
+  color:#ff6666;text-shadow:0 0 calc(var(--u)*3) #ff444488;}
+.msub{font-size:calc(var(--u)*3.4);color:var(--text-sub);margin-bottom:calc(var(--uh)*2);line-height:1.5;}
+.mbtn{width:100%;padding:calc(var(--uh)*1.5) 0;border-radius:calc(var(--u)*3);
+  border:2px solid var(--cyan);background:linear-gradient(180deg,#0c1840,#0a1228);
+  font-size:calc(var(--u)*4);font-weight:700;color:var(--cyan);cursor:pointer;
+  box-shadow:0 0 calc(var(--u)*2) #6ff3;transition:transform .1s;}
+.mbtn:active{transform:scale(.97);}
+
+/* アニメ */
+.shake{animation:shake .3s;}
+.shake-big{animation:shake-big .5s;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+@keyframes shake-big{0%,100%{transform:translate(0,0)}
+  15%{transform:translate(-7px,3px) rotate(-.6deg)}35%{transform:translate(8px,-4px) rotate(.6deg)}
+  55%{transform:translate(-6px,2px)}75%{transform:translate(5px,-2px)}}
+@keyframes pulse-btn{0%,100%{box-shadow:0 0 calc(var(--u)*2) #b585ff66}50%{box-shadow:0 0 calc(var(--u)*7) var(--magic)}}
+@keyframes pulse-btn-gold{0%,100%{box-shadow:0 0 calc(var(--u)*3) #ffd76b88}50%{box-shadow:0 0 calc(var(--u)*8) #ffd76b,0 0 calc(var(--u)*16) #ffb24a66}}
+@keyframes fever-glow{0%,100%{border-color:var(--gold);box-shadow:0 0 calc(var(--u)*8) #ffd76b88,inset 0 0 calc(var(--u)*5) #4a2e0066}
+  50%{border-color:var(--gold-bright);box-shadow:0 0 calc(var(--u)*16) #fff4,inset 0 0 calc(var(--u)*6) #ffd76b44}}
+@keyframes gauge-full{0%,100%{filter:drop-shadow(0 0 calc(var(--u)*2.5) #ffd76b88)}
+  50%{filter:drop-shadow(0 0 calc(var(--u)*5) #ffe89acc)}}
+@keyframes msg-pop{0%{transform:scale(.7);opacity:.4}55%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+@keyframes mbox-in{0%{transform:scale(.8) translateY(calc(var(--uh)*3));opacity:0}100%{transform:none;opacity:1}}
+#fv-rays{position:absolute;inset:0;pointer-events:none;z-index:29;opacity:0;}
+#fv-rays.burst{animation:rays-burst .8s ease-out;}
+@keyframes rays-burst{0%{opacity:0;transform:scale(.4) rotate(0)}30%{opacity:1}100%{opacity:0;transform:scale(1.6) rotate(40deg)}}
+@keyframes freeze-shake{
+  0%,100%{transform:translate(0,0);}10%{transform:translate(-3px,-2px);}20%{transform:translate(4px,1px);}
+  30%{transform:translate(-2px,3px);}40%{transform:translate(3px,-1px);}50%{transform:translate(-4px,2px);}
+  60%{transform:translate(2px,-3px);}70%{transform:translate(-1px,4px);}80%{transform:translate(3px,0px);}
+  90%{transform:translate(-2px,-2px);}
+}
+.freeze-shake-anim{animation:freeze-shake 0.4s ease-out !important;}
+@keyframes ripple-expand{
+  0%{transform:translate(-50%,-50%) scale(0);opacity:1;}
+  100%{transform:translate(-50%,-50%) scale(3);opacity:0;}
+}
+/* LvUPフラッシュ */
+@keyframes lvup-flash{
+  0%{opacity:0;}20%{opacity:1;}80%{opacity:1;}100%{opacity:0;}
+}
+#lvup-flash{position:absolute;inset:0;pointer-events:none;z-index:55;
+  background:radial-gradient(ellipse at 50% 40%,#b585ff88,transparent 70%);
+  opacity:0;}
+#lvup-flash.active{animation:lvup-flash .7s ease-out forwards;}
+
+/* ═══════════════════════════════
+   復活演出オーバーレイ（ケーーーン!!!）
+   ═══════════════════════════════ */
+#revival-overlay{
+  position:absolute;inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  z-index:80;
+  pointer-events:none;
+  background:radial-gradient(ellipse 80% 60% at 50% 50%, rgba(0,0,0,0.85), rgba(0,0,0,0.97));
+}
+#revival-overlay.show{display:flex;}
+
+/* パーティクルコンテナ */
+#revival-particles{
+  position:absolute;inset:0;
+  pointer-events:none;
+  overflow:hidden;
+}
+
+/* ケーーーン!!!テキスト */
+#revival-text{
+  position:relative;
+  z-index:82;
+  font-size:calc(var(--u)*18);
+  font-weight:900;
+  letter-spacing:.06em;
+  text-align:center;
+  line-height:1;
+  opacity:0;
+  transform:scale(0.1) rotate(-12deg);
+  background:linear-gradient(180deg,#fff8c0 0%,#ffd76b 25%,#ff9a3a 55%,#ff0080 80%,#b585ff 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 calc(var(--u)*4) #ffd76b) drop-shadow(0 0 calc(var(--u)*8) #ff9a3a88);
+}
+#revival-text.appear{
+  animation:revival-text-appear 0.6s cubic-bezier(.1,1.5,.3,1) forwards;
+}
+#revival-text.beat{
+  animation:revival-text-beat 0.35s ease-in-out infinite alternate;
+}
+@keyframes revival-text-appear{
+  0%{opacity:0;transform:scale(0.1) rotate(-12deg);}
+  55%{opacity:1;transform:scale(1.2) rotate(3deg);}
+  80%{transform:scale(0.95) rotate(-1deg);}
+  100%{opacity:1;transform:scale(1) rotate(0deg);}
+}
+@keyframes revival-text-beat{
+  0%{transform:scale(1) rotate(0deg);}
+  100%{transform:scale(1.06) rotate(1deg);}
+}
+
+/* 光の放射リング */
+#revival-radiate{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:81;
+  opacity:0;
+}
+#revival-radiate.burst{
+  animation:radiate-burst 1.8s ease-out forwards;
+}
+@keyframes radiate-burst{
+  0%{opacity:0;transform:scale(0.3) rotate(0deg);}
+  20%{opacity:1;}
+  70%{opacity:0.6;}
+  100%{opacity:0;transform:scale(2) rotate(30deg);}
+}
+
+/* 画面フラッシュ */
+#revival-flash{
+  position:absolute;inset:0;
+  pointer-events:none;
+  z-index:85;
+  background:#fff;
+  opacity:0;
+}
+#revival-flash.fire{
+  animation:revival-flash-anim 0.4s ease-out forwards;
+}
+@keyframes revival-flash-anim{
+  0%{opacity:0.9;}
+  100%{opacity:0;}
+}
+
+/* パーティクル個別アニメ */
+@keyframes particle-explode{
+  0%{opacity:1;transform:translate(0,0) scale(1);}
+  100%{opacity:0;transform:translate(var(--px),var(--py)) scale(0);}
+}
+@keyframes particle-twinkle{
+  0%,100%{opacity:1;}
+  50%{opacity:0.3;}
+}
+</style>
+</head>
+<body>
+<div id="phone">
+  <div id="bg"></div>
+  <canvas id="stars-c"></canvas>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div id="stage-lbl">ステージ 1 / 5</div>
+    <div id="enemy-row">
+      <div id="enemy-nm">🐉 ドラゴン</div>
+      <div id="hp-wrap">
+        <div id="hp-bg"><div id="hp-bar" style="width:100%"></div></div>
+        <div id="hp-txt">HP 18 / 18</div>
+      </div>
+    </div>
+    <!-- LvEXPバー -->
+    <div id="lv-row">
+      <div id="lv-txt">Lv 1</div>
+      <div id="exp-bg"><div id="exp-bar" style="width:0%"></div></div>
+      <div id="exp-txt">EXP 0/3</div>
+    </div>
+    <!-- 取得済みスキルアイコン -->
+    <div id="skill-row"></div>
+  </div>
+
+  <!-- フィーバーゲージ（レバー右横） -->
+  <div id="fv-side">
+    <div id="fv-lbl">FEVER<br>GAUGE</div>
+    <div id="fv-magic">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#d8b0ff"/><stop offset="1" stop-color="#8a4dff"/>
+          </linearGradient>
+          <linearGradient id="ringGradFull" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#fff3c0"/><stop offset="1" stop-color="#ffb24a"/>
+          </linearGradient>
+          <radialGradient id="coreGrad" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="#2a1060"/><stop offset="1" stop-color="#10042e"/>
+          </radialGradient>
+        </defs>
+        <circle cx="50" cy="50" r="44" fill="url(#coreGrad)" stroke="#2a1060" stroke-width="8"/>
+        <circle id="fv-ring" cx="50" cy="50" r="44" fill="none" stroke="url(#ringGrad)" stroke-width="8"
+          stroke-dasharray="276.5" stroke-dashoffset="276.5" stroke-linecap="round"
+          transform="rotate(-90 50 50)" style="transition:stroke-dashoffset .4s,stroke .3s;"/>
+        <circle cx="50" cy="50" r="33" fill="none" stroke="#7fd6ff" stroke-width=".7" opacity=".4"/>
+        <polygon points="50,20 55,37 73,37 59,47 64,64 50,54 36,64 41,47 27,37 45,37"
+          fill="none" stroke="#7fd6ff" stroke-width="1.2" opacity=".55"/>
+      </svg>
+      <div id="fv-pct">0%</div>
+    </div>
+    <button id="fv-btn"></button>
+    <div id="fv-timer"></div>
+  </div>
+
+  <!-- 敵ショーケース（リール上部の隙間） -->
+  <div id="enemy-showcase">
+    <div id="enemy-showcase-icon">🐉</div>
+    <div id="enemy-showcase-nm">ドラゴン</div>
+    <div id="showcase-hp-wrap">
+      <div id="showcase-hp-bg"><div id="showcase-hp-bar" style="width:100%"></div></div>
+      <div id="showcase-hp-txt">HP 18 / 18</div>
+    </div>
+  </div>
+
+  <!-- リール盤面 -->
+  <div id="reel-area">
+    <div id="payline"></div>
+    <div class="rc" id="rc0"><div class="rstrip" id="rs0"></div></div>
+    <div class="rc" id="rc1"><div class="rstrip" id="rs1"></div></div>
+    <div class="rc" id="rc2"><div class="rstrip" id="rs2"></div></div>
+    <!-- レインボー枠フラッシュ -->
+    <div id="rainbow-frame"></div>
+  </div>
+
+  <!-- レバー -->
+  <div id="lever-wrap">
+    <button id="lever-btn" onclick="handleClick()">🎰 SPIN!</button>
+  </div>
+
+  <!-- 残スピン数 -->
+  <div id="spin-counter">残り 2 スピン</div>
+
+  <!-- メッセージ -->
+  <div id="msg-zone"><div id="msg-txt"></div></div>
+
+  <!-- ペイアウト表 -->
+  <div id="paytbl">
+    <div class="pi"><div class="pi-s">7️⃣</div><div class="pi-v">×15</div></div>
+    <div class="pi"><div class="pi-s">💎</div><div class="pi-v">×10</div></div>
+    <div class="pi"><div class="pi-s">🔮</div><div class="pi-v">×8</div></div>
+    <div class="pi"><div class="pi-s">⭐</div><div class="pi-v">×6</div></div>
+    <div class="pi"><div class="pi-s">📕</div><div class="pi-v">×4</div></div>
+  </div>
+
+  <!-- フィーバー演出 -->
+  <div id="fv-flash"></div>
+  <div id="fv-overlay"></div>
+  <svg id="fv-rays" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs><radialGradient id="rayGrad" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fff3c0" stop-opacity=".9"/><stop offset="1" stop-color="#ffd76b" stop-opacity="0"/>
+    </radialGradient></defs>
+    <g fill="url(#rayGrad)" transform="translate(50 50)">
+      <polygon points="0,-70 5,0 -5,0"/><polygon points="0,70 5,0 -5,0"/>
+      <polygon points="-70,0 0,5 0,-5"/><polygon points="70,0 0,5 0,-5"/>
+      <polygon points="-50,-50 4,-2 2,-4" transform="rotate(45)"/>
+      <polygon points="-50,-50 4,-2 2,-4" transform="rotate(135)"/>
+      <polygon points="-50,-50 4,-2 2,-4" transform="rotate(225)"/>
+      <polygon points="-50,-50 4,-2 2,-4" transform="rotate(315)"/>
+    </g>
+  </svg>
+
+  <!-- フリーズ演出オーバーレイ -->
+  <div id="freeze-overlay"></div>
+  <div id="freeze-flash"></div>
+
+  <!-- FEVER INCOMING テキスト演出 -->
+  <div id="fever-incoming">
+    <div id="fi-main">FEVER</div>
+    <div id="fi-sub">INCOMING!!</div>
+    <div id="fi-7s">🟡7️⃣🟡</div>
+  </div>
+
+  <!-- 波紋コンテナ -->
+  <div id="ripple-container"></div>
+
+  <!-- キラリ演出コンテナ -->
+  <div id="kirari-overlay"></div>
+
+  <!-- LvUPフラッシュ -->
+  <div id="lvup-flash"></div>
+
+  <!-- 復活演出オーバーレイ -->
+  <div id="revival-overlay">
+    <div id="revival-flash"></div>
+    <svg id="revival-radiate" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="revGrad" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stop-color="#ffd76b" stop-opacity="0.9"/>
+          <stop offset="0.4" stop-color="#ff9a3a" stop-opacity="0.6"/>
+          <stop offset="1" stop-color="#ff0080" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <g transform="translate(100,100)" fill="url(#revGrad)">
+        <polygon points="0,-120 6,0 -6,0"/>
+        <polygon points="0,120 6,0 -6,0"/>
+        <polygon points="-120,0 0,6 0,-6"/>
+        <polygon points="120,0 0,6 0,-6"/>
+        <polygon points="0,-120 6,0 -6,0" transform="rotate(45)"/>
+        <polygon points="0,-120 6,0 -6,0" transform="rotate(90)"/>
+        <polygon points="0,-120 6,0 -6,0" transform="rotate(135)"/>
+        <polygon points="0,-120 6,0 -6,0" transform="rotate(225)"/>
+        <polygon points="0,-120 6,0 -6,0" transform="rotate(270)"/>
+        <polygon points="0,-120 6,0 -6,0" transform="rotate(315)"/>
+        <polygon points="0,-120 6,0 -6,0" transform="rotate(22)"/>
+        <polygon points="0,-120 6,0 -6,0" transform="rotate(67)"/>
+        <polygon points="0,-120 6,0 -6,0" transform="rotate(112)"/>
+        <polygon points="0,-120 6,0 -6,0" transform="rotate(157)"/>
+        <polygon points="0,-120 6,0 -6,0" transform="rotate(202)"/>
+        <polygon points="0,-120 6,0 -6,0" transform="rotate(247)"/>
+        <polygon points="0,-120 6,0 -6,0" transform="rotate(292)"/>
+        <polygon points="0,-120 6,0 -6,0" transform="rotate(337)"/>
+      </g>
+    </svg>
+    <div id="revival-particles"></div>
+    <div id="revival-text">ケーーーン!!!</div>
+  </div>
+
+  <!-- スキル選択モーダル -->
+  <div id="mod-skill">
+    <div id="skill-modal-box">
+      <div id="skill-modal-title">⬆ LEVEL UP!</div>
+      <div id="skill-modal-sub">スキルを1つ選べ！</div>
+      <div id="skill-choices"></div>
+    </div>
+  </div>
+
+  <!-- モーダル：ステージクリア -->
+  <div class="modal" id="mod-win" onclick="goNextStage()">
+    <div class="mbox mbox-win">
+      <div class="mtitle">⭐ 撃破！</div>
+      <div class="msub" id="mod-win-sub">クリア！次のステージへ<br>フィーバーゲージを引き継ぐ</div>
+      <button class="mbtn" onclick="event.stopPropagation();goNextStage()">次へ ▶</button>
+    </div>
+  </div>
+  <!-- モーダル：ゲームオーバー（敗北） -->
+  <div class="modal" id="mod-lose">
+    <div class="mbox mbox-lose">
+      <div class="mtitle-lose">💀 敗北...</div>
+      <div class="msub" id="mod-lose-sub">図柄が揃わず倒せなかった...<br>もう一度挑戦しよう！</div>
+      <button class="mbtn" onclick="restartAll()">最初から</button>
+    </div>
+  </div>
+  <!-- モーダル：ゲームクリア -->
+  <div class="modal" id="mod-clear">
+    <div class="mbox mbox-clear">
+      <div class="mtitle" style="color:var(--nova-9)">✨ CLEAR!</div>
+      <div class="msub">全ステージ制覇！<br>フィーバー連鎖の達人！</div>
+      <button class="mbtn" onclick="restartAll()">もう一度</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════
+   フィーバー昇華スロット  メインロジック
+   ローグライト経験値・Lvアップ・スキル選択システム追加版
+   ══════════════════════════════════════ */
+
+// ── 図柄 ──
+const N_SYMS=['💎','🔮','⭐','📕','🌸','🐉'];
+const F_SYMS=['🌈','👁️','💫','🔱','⚡','🏆','🌟'];
+const DMG={'7️⃣':15,'💎':10,'🔮':8,'⭐':6,'📕':4,'🌸':3,'🐉':5,
+           '🌈':45,'👁️':35,'💫':30,'🔱':28,'⚡':25,'🏆':22,'🌟':20};
+
+// ── キラリ演出：図柄の強さ（レバーON時の発光確率テーブル）──
+const KIRARI_PROB_NORMAL={
+  '💎':0.35,
+  '🐉':0.28,
+  '🔮':0.22,
+  '⭐':0.15,
+  '📕':0.08,
+  '🌸':0.06,
+};
+const KIRARI_PROB_FEVER={
+  '🌈':0.60,
+  '👁️':0.50,
+  '💫':0.42,
+  '🔱':0.38,
+  '⚡':0.32,
+  '🏆':0.26,
+  '🌟':0.22,
+};
+
+// ── スキルプール定義 ──
+const SKILL_POOL=[
+  {id:'diamond_boost', name:'💎 ダイヤブースト',   desc:'ダイヤが揃った時の攻撃力 ×1.5', type:'boost', sym:'💎', multi:1.5},
+  {id:'heart_boost',   name:'🔮 クリスタルブースト',desc:'クリスタルが揃った時の攻撃力 ×1.5', type:'boost', sym:'🔮', multi:1.5},
+  {id:'star_boost',    name:'⭐ スターブースト',    desc:'スターが揃った時の攻撃力 ×1.5', type:'boost', sym:'⭐', multi:1.5},
+  {id:'dragon_boost',  name:'🐉 ドラゴンブースト', desc:'ドラゴンが揃った時の攻撃力 ×2', type:'boost', sym:'🐉', multi:2.0},
+  {id:'rainbow_flash', name:'🌈 レインボーフラッシュ',desc:'レインボーが揃った時の攻撃力 ×2', type:'boost', sym:'🌈', multi:2.0},
+  {id:'eye_boost',     name:'👁️ 魔王の眼光',        desc:'魔王の目が揃った時の攻撃力 ×1.8', type:'boost', sym:'👁️', multi:1.8},
+  {id:'fever_up',      name:'🔥 フィーバーUP',      desc:'スピンごとのフィーバーゲージ+10（追加）', type:'fevup'},
+  {id:'fever_carry',   name:'🌊 フィーバーキャリー', desc:'フィーバー状態を次のステージへ持ち越す', type:'fevcarry'},
+  {id:'lucky_spin',    name:'🍀 ラッキースピン',     desc:'各リールが揃いやすくなる（確率+15%）', type:'lucky'},
+  {id:'critical',      name:'⚡ 改心の一撃',         desc:'10%の確率でダメージが3倍になる', type:'crit'},
+];
+
+// ── ステージ定義 ──
+const STAGES=[
+  { id:1,lbl:'ステージ 1 / 5',eName:'🐉 ドラゴン',eHP:18,fvStart:0,
+    hint:'クリックでスロットが回る！同じ図柄を揃えてダメージを与えよう！',
+    spins:[
+      {s:['💎','💎','💎'],fg:40},
+      {s:['🔮','🔮','🔮'],fg:30},
+    ]
+  },
+  { id:2,lbl:'ステージ 2 / 5',eName:'😈 魔王',eHP:80,fvStart:30,
+    hint:'ゲージ満タン！SPINでフィーバー発動！神話図柄で一気に攻めよう！',
+    spins:[
+      {s:['⭐','⭐','⭐'],fg:10},
+      {s:['💎','💎','💎'],fg:10},
+      {s:['🌈','🌈','🌈'],fg:0,fv:true},
+      {s:['👁️','👁️','👁️'],fg:0,fv:true},
+    ]
+  },
+  { id:3,lbl:'ステージ 3 / 5',eName:'🧿 石像番兵',eHP:40,fvStart:20,
+    hint:'図柄が揃わないこともある！慎重に停めてダメージを積み重ねよう！',
+    spins:[
+      {s:['🐉','🐉','🐉'],fg:20},
+      {s:['🌸','🔮','📕'],fg:0,miss:true},
+      {s:['🔮','🔮','🔮'],fg:20},
+      {s:['💎','💎','💎'],fg:20},
+      {s:['⭐','⭐','⭐'],fg:20},
+      {s:['🌈','🌈','🌈'],fg:0,fv:true},
+    ]
+  },
+  { id:4,lbl:'ステージ 4 / 5',eName:'🦇 闇公爵',eHP:60,fvStart:10,
+    hint:'ハズレが多い！フィーバーを発動させて逆転を狙え！',
+    spins:[
+      {s:['📕','🌸','🐉'],fg:0,miss:true},
+      {s:['⭐','⭐','⭐'],fg:25},
+      {s:['🔮','📕','💎'],fg:0,miss:true},
+      {s:['💎','💎','💎'],fg:25},
+      {s:['🌸','🐉','📕'],fg:0,miss:true},
+      {s:['🔮','🔮','🔮'],fg:25},
+      {s:['⭐','💎','🔮'],fg:0,miss:true},
+      {s:['🐉','🐉','🐉'],fg:20},
+      {s:['💫','💫','💫'],fg:0,fv:true},
+    ]
+  },
+  { id:5,lbl:'ステージ 5 / 5',eName:'👹 魔神王',eHP:50,fvStart:0,
+    hint:'最終決戦！スピン数は限られている。揃わなければ倒せない…',
+    spins:[
+      {s:['🌸','📕','🐉'],fg:0,miss:true},
+      {s:['🔮','🌸','⭐'],fg:0,miss:true},
+      {s:['💎','🐉','🌸'],fg:0,miss:true},
+      {s:['⭐','⭐','⭐'],fg:30},
+      {s:['📕','🔮','💎'],fg:0,miss:true},
+      {s:['🐉','🌸','📕'],fg:0,miss:true},
+      {s:['🔮','🔮','🔮'],fg:30},
+      {s:['💎','🌸','🐉'],fg:0,miss:true},
+    ]
+  }
+];
+
+// ── ゲーム状態 ──
+let stageIdx=0, spinIdx=0;
+let eHP=18, eMaxHP=18;
+let fvGauge=0, inFever=false, fvRemain=0;
+let isFeverActivating=false;
+let phase='idle';
+let rafIds=[0,0,0];
+let reelRunning=[false,false,false];
+let symH=0;
+let locked=false;
+let hasRevived=false;    // 復活済みフラグ（1ステージ1回限り）
+let isRevivalFever=false; // 復活フィーバーフラグ（fvRemain=3固定）
+let currentFeverSym='🌈'; // フィーバー中の現在スピン図柄（全リール共通）
+
+// ── ローグライトシステム状態 ──
+let playerLv=1;
+let playerExp=0;
+const EXP_PER_LV=3;
+const MAX_LV=10;
+let acquiredSkills=[];
+let pendingLvUp=false;
+let feverCarryActive=false;
+
+function q(id){return document.getElementById(id);}
+
+// ── スター背景 ──
+function drawStars(){
+  const c=q('stars-c');
+  c.width=c.offsetWidth||200; c.height=c.offsetHeight||400;
+  const ctx=c.getContext('2d');
+  for(let i=0;i<80;i++){
+    ctx.beginPath();
+    ctx.arc(Math.random()*c.width,Math.random()*c.height,Math.random()*1.5+.3,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,255,255,${Math.random()*.6+.2})`;
+    ctx.fill();
+  }
+  const tints=['185,133,255','127,214,255','255,215,107'];
+  for(let i=0;i<22;i++){
+    const x=Math.random()*c.width,y=Math.random()*c.height,r=Math.random()*2.2+1;
+    const t=tints[i%3];
+    const g=ctx.createRadialGradient(x,y,0,x,y,r*3);
+    g.addColorStop(0,`rgba(${t},${Math.random()*.5+.4})`);
+    g.addColorStop(1,`rgba(${t},0)`);
+    ctx.beginPath();ctx.arc(x,y,r*3,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
+  }
+}
+
+// ── リール構築 ──
+function buildStrips(){
+  const syms=inFever?F_SYMS:N_SYMS;
+  const ra=q('reel-area');
+  symH=ra.offsetHeight/3;
+  const COPIES=6;
+  for(let i=0;i<3;i++){
+    const rs=q('rs'+i);
+    rs.innerHTML='';
+    for(let c=0;c<COPIES;c++){
+      syms.forEach(s=>{
+        const d=document.createElement('div');
+        d.className='sym'; d.style.height=symH+'px'; d.textContent=s;
+        rs.appendChild(d);
+      });
+    }
+    const startTop=(1-syms.length*2)*symH;
+    setTop(i,startTop);
+  }
+}
+
+function setTop(i,v){q('rs'+i).style.top=v+'px';}
+function getTop(i){return parseFloat(q('rs'+i).style.top)||0;}
+
+function spinReel(i){
+  if(!reelRunning[i])return;
+  const syms=inFever?F_SYMS:(isFeverActivating?['7️⃣']:N_SYMS);
+  const loopLen=symH*syms.length;
+  let t=getTop(i)+5;
+  if(t>-symH) t-=loopLen;
+  setTop(i,t);
+  rafIds[i]=requestAnimationFrame(()=>spinReel(i));
+}
+
+function startReelSpin(i){
+  reelRunning[i]=true;
+  spinReel(i);
+}
+
+function stopReelAt(i,sym){
+  reelRunning[i]=false;
+  cancelAnimationFrame(rafIds[i]);
+  const syms=inFever?F_SYMS:N_SYMS;
+  const idx=syms.indexOf(sym);
+  if(idx<0){setTop(i,-symH);return;}
+  const globalIdx=syms.length*2+idx;
+  const top=(1-globalIdx)*symH;
+  setTop(i,top);
+}
+
+function buildFeverActivationStrips(){
+  const ra=q('reel-area');
+  symH=ra.offsetHeight/3;
+  for(let i=0;i<3;i++){
+    const rs=q('rs'+i);
+    rs.innerHTML='';
+    const SEVEN_COUNT=12;
+    for(let k=0;k<SEVEN_COUNT;k++){
+      const d=document.createElement('div');
+      d.className='sym gold-seven'; d.style.height=symH+'px'; d.textContent='7️⃣';
+      rs.appendChild(d);
+    }
+    setTop(i,0);
+  }
+}
+
+function stopFeverActivationReel(i){
+  reelRunning[i]=false;
+  cancelAnimationFrame(rafIds[i]);
+  setTop(i,0);
+}
+
+// ── 波紋エフェクト ──
+function spawnRipple(cx,cy,color){
+  const container=q('ripple-container');
+  const ring=document.createElement('div');
+  ring.className='ripple-ring '+color;
+  const pw=q('phone').offsetWidth;
+  const size=pw*0.6;
+  ring.style.width=size+'px';
+  ring.style.height=size+'px';
+  ring.style.left=cx;
+  ring.style.top=cy;
+  ring.style.animation='ripple-expand 0.9s ease-out forwards';
+  container.appendChild(ring);
+  setTimeout(()=>ring.remove(),900);
+}
+
+// ── キラリ演出 ──
+function tryKirariEffect(sym, isFeverMode){
+  const probTable = isFeverMode ? KIRARI_PROB_FEVER : KIRARI_PROB_NORMAL;
+  const prob = probTable[sym] || 0;
+  if(Math.random() >= prob) return;
+
+  const ra = q('reel-area');
+  const raRect = ra.getBoundingClientRect();
+  const phone = q('phone');
+  const phoneRect = phone.getBoundingClientRect();
+  const container = q('kirari-overlay');
+
+  const count = Math.floor(Math.random()*3)+2;
+  for(let k=0; k<count; k++){
+    setTimeout(()=>{
+      const spark = document.createElement('div');
+      spark.className = 'kirari-spark';
+      const rx = (raRect.left - phoneRect.left) + Math.random()*raRect.width;
+      const ry = (raRect.top  - phoneRect.top)  + Math.random()*raRect.height;
+      const size = Math.random()*20+18;
+      spark.style.left = rx+'px';
+      spark.style.top  = ry+'px';
+      spark.style.fontSize = size+'px';
+      spark.textContent = isFeverMode ? '✨' : '⭐';
+      container.appendChild(spark);
+      setTimeout(()=>spark.remove(), 650);
+    }, k*80);
+  }
+  setTimeout(()=>{
+    const star = document.createElement('div');
+    star.className = 'kirari-star';
+    const rx = (raRect.left - phoneRect.left) + raRect.width*0.3 + Math.random()*raRect.width*0.4;
+    const ry = (raRect.top  - phoneRect.top)  + raRect.height*0.3 + Math.random()*raRect.height*0.4;
+    star.style.left = rx+'px';
+    star.style.top  = ry+'px';
+    star.style.fontSize = '32px';
+    star.textContent = isFeverMode ? '🌟' : '💫';
+    container.appendChild(star);
+    setTimeout(()=>star.remove(), 550);
+  }, 50);
+}
+
+// ── レインボー枠フラッシュ ──
+function triggerRainbowFrame(){
+  const frame = q('rainbow-frame');
+  frame.classList.remove('flash');
+  void frame.offsetWidth;
+  frame.classList.add('flash');
+  setTimeout(()=>frame.classList.remove('flash'), 1250);
+}
+
+// ── フリーズ演出 ──
+function playFreezeEffect(callback){
+  const phone=q('phone');
+  const freezeOv=q('freeze-overlay');
+  const freezeFl=q('freeze-flash');
+  freezeFl.style.transition='opacity 0.04s';
+  freezeFl.style.opacity='0.95';
+  setTimeout(()=>{
+    freezeFl.style.transition='opacity 0.08s';
+    freezeFl.style.opacity='0';
+    freezeOv.classList.add('active');
+    phone.classList.add('freeze-shake-anim');
+    setTimeout(()=>phone.classList.remove('freeze-shake-anim'),400);
+    setTimeout(()=>spawnRipple('50%','45%','gold'),60);
+    setTimeout(()=>spawnRipple('50%','45%','white'),200);
+    setTimeout(()=>spawnRipple('50%','45%','gold'),380);
+    setMsg('⚡ !! ⚡');
+  },60);
+  setTimeout(()=>{
+    freezeOv.classList.remove('active');
+    const fi=q('fever-incoming');
+    fi.classList.remove('hide');
+    fi.classList.add('show');
+    setTimeout(()=>{
+      fi.classList.remove('show');
+      fi.classList.add('hide');
+      setTimeout(()=>{
+        fi.classList.remove('hide');
+        callback();
+      },300);
+    },1100);
+  },550);
+}
+
+// ════════════════════════════════════════
+//   ローグライト：経験値 / Lvアップ / スキル選択
+// ════════════════════════════════════════
+
+function gainExp(){
+  if(playerLv>=MAX_LV) return;
+  playerExp++;
+  if(playerExp>=EXP_PER_LV){
+    playerExp=0;
+    playerLv++;
+    triggerLvUp();
+  }
+  updateLvUI();
+}
+
+function triggerLvUp(){
+  const fl=q('lvup-flash');
+  fl.classList.remove('active');
+  void fl.offsetWidth;
+  fl.classList.add('active');
+  pendingLvUp=true;
+  setTimeout(()=>showSkillModal(),600);
+}
+
+function showSkillModal(){
+  if(!pendingLvUp) return; // ステージ遷移によりキャンセルされた場合は実行しない
+  locked=true;
+  const available=SKILL_POOL.filter(sk=>!acquiredSkills.includes(sk.id));
+  const shuffled=[...available].sort(()=>Math.random()-.5).slice(0,3);
+  if(shuffled.length===0){
+    pendingLvUp=false;
+    locked=false;
+    return;
+  }
+  const choicesEl=q('skill-choices');
+  choicesEl.innerHTML='';
+  shuffled.forEach(sk=>{
+    const btn=document.createElement('button');
+    btn.className='skill-choice';
+    btn.innerHTML=`<div class="skill-choice-name">${sk.name}</div><div class="skill-choice-desc">${sk.desc}</div>`;
+    btn.onclick=()=>selectSkill(sk.id);
+    choicesEl.appendChild(btn);
+  });
+  q('mod-skill').classList.add('show');
+}
+
+function selectSkill(id){
+  acquiredSkills.push(id);
+  q('mod-skill').classList.remove('show');
+  pendingLvUp=false;
+  locked=false;
+  updateSkillUI();
+  setMsg('✨ スキル取得！');
+  setTimeout(()=>{setLever('idle');setMsg(STAGES[stageIdx].hint);},800);
+}
+
+function hasSkill(id){return acquiredSkills.includes(id);}
+
+// ── スキル効果計算 ──
+function getSymbolMulti(sym){
+  let multi=1.0;
+  SKILL_POOL.forEach(sk=>{
+    if(sk.type==='boost' && sk.sym===sym && hasSkill(sk.id)){
+      multi=Math.max(multi,sk.multi);
+    }
+  });
+  return multi;
+}
+
+function luckyOverrideMiss(){
+  if(!hasSkill('lucky_spin')) return false;
+  return Math.random()<0.15;
+}
+
+function critMulti(){
+  if(!hasSkill('critical')) return 1;
+  if(Math.random()<0.10) return 3;
+  return 1;
+}
+
+function feverUpBonus(){
+  return hasSkill('fever_up') ? 10 : 0;
+}
+
+// ── UI更新 ──
+function updateLvUI(){
+  const expForNext=EXP_PER_LV;
+  const pct=Math.min(100,playerExp/expForNext*100);
+  q('lv-txt').textContent='Lv '+playerLv;
+  q('exp-bar').style.width=pct+'%';
+  q('exp-txt').textContent='EXP '+playerExp+'/'+expForNext;
+}
+
+function updateSkillUI(){
+  const row=q('skill-row');
+  row.innerHTML='';
+  acquiredSkills.forEach(id=>{
+    const sk=SKILL_POOL.find(s=>s.id===id);
+    if(!sk) return;
+    const span=document.createElement('span');
+    span.className='skill-icon';
+    span.textContent=sk.name.split(' ').slice(0,2).join(' ');
+    row.appendChild(span);
+  });
+}
+
+// ── 残スピン数表示 ──
+function updateSpinCounter(){
+  const sd=STAGES[stageIdx];
+  const remain=sd.spins.length-spinIdx;
+  const el=q('spin-counter');
+  el.textContent='残り '+remain+' スピン';
+  el.className=remain<=1?'danger':remain<=3?'warn':'';
+}
+
+// ── 敵ショーケース更新 ──
+function updateEnemyShowcase(){
+  const sd=STAGES[stageIdx];
+  const parts=sd.eName.trim().split(/\s+/);
+  q('enemy-showcase-icon').textContent=parts[0];
+  q('enemy-showcase-nm').textContent=parts.slice(1).join(' ');
+  updateShowcaseHP();
+}
+
+// ── ショーケースHPバー更新 ──
+function updateShowcaseHP(){
+  const pct=Math.max(0,eHP/eMaxHP*100);
+  q('showcase-hp-bar').style.width=pct+'%';
+  q('showcase-hp-txt').textContent='HP '+eHP+' / '+eMaxHP;
+}
+
+// ═════════════════════════════════════════════
+//   復活演出：ケーーーン!!! 50%復活チャンス
+// ═════════════════════════════════════════════
+
+function spawnRevivalParticles(){
+  const container = q('revival-particles');
+  container.innerHTML='';
+  const phone = q('phone');
+  const pw = phone.offsetWidth;
+  const ph = phone.offsetHeight;
+  const colors=['#ffd76b','#ff9a3a','#ff0080','#b585ff','#6ff','#fff8c0','#ff5d8a'];
+  const emojis=['✨','⭐','💫','🌟','🎇','🎆'];
+  const count=48;
+  for(let i=0;i<count;i++){
+    const el=document.createElement('div');
+    el.style.position='absolute';
+    el.style.pointerEvents='none';
+    // 中央から爆発
+    const cx=pw*0.5;
+    const cy=ph*0.5;
+    el.style.left=cx+'px';
+    el.style.top=cy+'px';
+    const angle=Math.random()*Math.PI*2;
+    const dist=pw*0.3+Math.random()*pw*0.4;
+    const tx=Math.cos(angle)*dist;
+    const ty=Math.sin(angle)*dist;
+    el.style.setProperty('--px',tx+'px');
+    el.style.setProperty('--py',ty+'px');
+    if(Math.random()<0.5){
+      el.textContent=emojis[Math.floor(Math.random()*emojis.length)];
+      el.style.fontSize=(12+Math.random()*20)+'px';
+    } else {
+      el.style.width=(4+Math.random()*8)+'px';
+      el.style.height=el.style.width;
+      el.style.borderRadius='50%';
+      el.style.background=colors[Math.floor(Math.random()*colors.length)];
+      el.style.boxShadow='0 0 4px '+colors[Math.floor(Math.random()*colors.length)];
+    }
+    const delay=Math.random()*300;
+    const dur=600+Math.random()*800;
+    el.style.animation=`particle-explode ${dur}ms ease-out ${delay}ms forwards`;
+    container.appendChild(el);
+  }
+}
+
+function playRevivalEffect(callback){
+  const overlay=q('revival-overlay');
+  const txt=q('revival-text');
+  const radiate=q('revival-radiate');
+  const flash=q('revival-flash');
+
+  // リセット
+  txt.className='';
+  txt.style.opacity='0';
+  radiate.className='';
+  flash.className='';
+  overlay.classList.remove('show');
+
+  overlay.classList.add('show');
+
+  // 画面フラッシュ
+  setTimeout(()=>{
+    flash.classList.remove('fire');
+    void flash.offsetWidth;
+    flash.classList.add('fire');
+  },50);
+
+  // 光の放射
+  setTimeout(()=>{
+    radiate.classList.remove('burst');
+    void radiate.offsetWidth;
+    radiate.classList.add('burst');
+  },100);
+
+  // パーティクル爆発
+  setTimeout(()=>{
+    spawnRevivalParticles();
+  },150);
+
+  // ケーーーン!!!テキスト出現
+  setTimeout(()=>{
+    txt.classList.remove('appear','beat');
+    void txt.offsetWidth;
+    txt.classList.add('appear');
+    // ビートアニメに移行
+    setTimeout(()=>{
+      txt.classList.remove('appear');
+      txt.style.opacity='1';
+      txt.style.transform='scale(1) rotate(0deg)';
+      txt.classList.add('beat');
+    },650);
+  },200);
+
+  // 演出終了（1.8秒後）→ コールバック
+  setTimeout(()=>{
+    overlay.classList.remove('show');
+    txt.classList.remove('beat');
+    q('revival-particles').innerHTML='';
+    callback();
+  },2000);
+}
+
+function tryRevival(){
+  const won = Math.random() < 0.5;
+  if(!won){
+    // 非当選：そのまま敗北画面を維持
+    return;
+  }
+  // 当選：復活済みフラグをセット（以降は再抽選なし）
+  hasRevived = true;
+  isRevivalFever = true; // 復活フィーバーフラグ（doFeverでfvRemain=3固定）
+  // 当選：敗北モーダルを隠してから復活演出開始
+  q('mod-lose').classList.remove('show');
+
+  playRevivalEffect(()=>{
+    // スピン数を最大値まで回復
+    const sd = STAGES[stageIdx];
+    spinIdx = 0;
+    updateSpinCounter();
+
+    // フィーバーゲージをMAXにしてフィーバー突入
+    fvGauge = 100;
+    updateFeverUI();
+
+    // ゲームを続行状態に戻す
+    locked = false;
+    phase = 'idle';
+    setMsg('🔥 復活！フィーバー発動！');
+
+    // フィーバー発動（フリーズ演出あり）
+    setTimeout(()=>{
+      locked = true;
+      phase = 'freeze';
+      setLever('disabled');
+      playFreezeEffect(()=>{
+        locked = false;
+        phase = 'idle';
+        startFeverActivationSpin();
+      });
+    }, 600);
+  });
+}
+
+// ── メインクリックハンドラ ──
+function handleClick(){
+  if(locked) return;
+  const sd=STAGES[stageIdx];
+
+  if(phase==='idle'){
+    if(spinIdx>=sd.spins.length){
+      if(eHP>0) setTimeout(showLose,300);
+      return;
+    }
+    const sp=sd.spins[spinIdx];
+
+    if(fvGauge>=100 && !inFever){
+      locked=true;
+      phase='freeze';
+      setLever('disabled');
+      setMsg('');
+      playFreezeEffect(()=>{
+        locked=false;
+        phase='idle';
+        startFeverActivationSpin();
+      });
+      return;
+    }
+
+    if(sp.fv && !inFever){
+      setMsg('🔥 ゲージ満タン！SPINを押してフィーバー発動！');
+      return;
+    }
+    startSpin();
+  } else if(phase==='spinning'){
+    if(isFeverActivating) doFeverActivationStop(0);
+    else doStop(0);
+  } else if(phase==='stop1'){
+    if(isFeverActivating) doFeverActivationStop(1);
+    else doStop(1);
+  } else if(phase==='stop2'){
+    if(isFeverActivating) doFeverActivationStop(2);
+    else doStop(2);
+  }
+}
+
+function startSpin(){
+  const sd=STAGES[stageIdx];
+  phase='spinning';
+  setLever('spinning');
+  setMsg('');
+  for(let i=0;i<3;i++) startReelSpin(i);
+
+  if(inFever){
+    // フィーバー中：フィーバーデッキからランダムに図柄を選ぶ（全リール共通）
+    currentFeverSym=F_SYMS[Math.floor(Math.random()*F_SYMS.length)];
+    tryKirariEffect(currentFeverSym, true);
+  } else {
+    const sp=sd.spins[spinIdx];
+    if(!sp.miss && !isFeverActivating){
+      const sym = sp.s[0];
+      tryKirariEffect(sym, false);
+    }
+  }
+}
+
+function startFeverActivationSpin(){
+  isFeverActivating=true;
+  phase='spinning';
+  q('reel-area').classList.add('fever-ready-mode');
+  buildFeverActivationStrips();
+  setLever('fever-spinning');
+  setMsg('🌟 フィーバー発動スピン！金の7を揃えろ！');
+  for(let i=0;i<3;i++) startReelSpin(i);
+}
+
+function doFeverActivationStop(reelId){
+  stopFeverActivationReel(reelId);
+  if(reelId===0){phase='stop1';setLever('stop1');}
+  else if(reelId===1){phase='stop2';setLever('stop2');}
+  else{
+    phase='judging';
+    locked=true;
+    setLever('disabled');
+    setTimeout(judgeFeverActivation,350);
+  }
+}
+
+function judgeFeverActivation(){
+  isFeverActivating=false;
+  q('reel-area').classList.remove('fever-ready-mode');
+  showFeverActivationHit();
+  fvGauge=0;
+  updateFeverUI();
+  phase='idle';
+  setTimeout(()=>doFever(),400);
+}
+
+function showFeverActivationHit(){
+  setMsg('7️⃣7️⃣7️⃣ フィーバー発動！！');
+  q('reel-area').classList.add('shake');
+  q('fv-flash').style.opacity='.5';
+  setTimeout(()=>{
+    q('reel-area').classList.remove('shake');
+    q('fv-flash').style.opacity='0';
+  },350);
+}
+
+function doStop(reelId){
+  if(inFever){
+    // フィーバー中：currentFeverSymで全リールを止める
+    stopReelAt(reelId,currentFeverSym);
+  } else {
+    const sd=STAGES[stageIdx];
+    const sp=sd.spins[spinIdx];
+    stopReelAt(reelId,sp.s[reelId]);
+  }
+  if(reelId===0){phase='stop1';setLever('stop1');}
+  else if(reelId===1){phase='stop2';setLever('stop2');}
+  else{phase='judging';locked=true;setTimeout(judgeResult,350);}
+}
+
+function judgeResult(){
+  const sd=STAGES[stageIdx];
+
+  if(inFever){
+    // フィーバー中：currentFeverSymで確定HIT・ダメージ計算
+    const sym=currentFeverSym;
+    let baseDmg=DMG[sym]||20;
+    const symMulti=getSymbolMulti(sym);
+    baseDmg=Math.floor(baseDmg*symMulti);
+    const crit=critMulti();
+    baseDmg=Math.floor(baseDmg*crit);
+    eHP=Math.max(0,eHP-baseDmg);
+    showHit(sym,baseDmg,true,symMulti>1,crit>1);
+    if(sym==='🌈') triggerRainbowFrame();
+    fvRemain=Math.max(0,fvRemain-1);
+    // フィーバー中はspinIdxをsd.spins.length-1以内に収める
+    if(spinIdx<sd.spins.length-1) spinIdx++;
+    // フィーバー中は経験値付与（勝利に向かうスピン）
+    gainExp();
+  } else {
+    const sp=sd.spins[spinIdx];
+    const [s0,s1,s2]=sp.s;
+
+    let isMiss=sp.miss;
+    if(isMiss && luckyOverrideMiss()){
+      isMiss=false;
+      setMsg('🍀 ラッキー！ハズレを打ち消した！');
+    }
+
+    const hit=(!isMiss)&&(s0===s1&&s1===s2);
+
+    if(hit){
+      let baseDmg=DMG[s0]||5;
+      const symMulti=getSymbolMulti(s0);
+      baseDmg=Math.floor(baseDmg*symMulti);
+      const crit=critMulti();
+      baseDmg=Math.floor(baseDmg*crit);
+      eHP=Math.max(0,eHP-baseDmg);
+      showHit(s0,baseDmg,false,symMulti>1,crit>1);
+      if(sp.fg>0){
+        const bonus=feverUpBonus();
+        fvGauge=Math.min(100,fvGauge+sp.fg+bonus);
+        updateFeverUI();
+      }
+    } else if(!isMiss){
+      setMsg('ハズレ...');
+    }
+
+    spinIdx++;
+    // 通常スピン：このスピンで負けが確定しない場合のみ経験値付与
+    // （スピン切れで敗北する最後のスピンでは経験値を与えない）
+    const willLose = (spinIdx>=sd.spins.length) && (eHP>0);
+    if(!willLose) gainExp();
+  }
+
+  updateSpinCounter();
+  updateHP();
+  updateShowcaseHP();
+
+  if(eHP<=0){
+    setTimeout(showWin,700);
+    return;
+  }
+
+  if(spinIdx>=sd.spins.length && !inFever){
+    setTimeout(showLose,700);
+    return;
+  }
+
+  setTimeout(()=>{
+    locked=false; phase='idle';
+    if(inFever && fvRemain<=0) endFever();
+    updateFeverBtn();
+    setLever('idle');
+    if(fvGauge>=100 && !inFever){
+      setLever('fever-ready');
+      setMsg('🔥 ゲージ満タン！SPINでフィーバー発動！');
+    }
+    if(spinIdx>=sd.spins.length && !inFever && eHP>0){
+      setTimeout(showLose,400);
+    }
+  },600);
+}
+
+function showHit(sym,dmg,fv,boosted,crit){
+  let msg='';
+  if(crit) msg='💥 改心の一撃！';
+  else if(boosted) msg='✨ ブースト！';
+  if(fv){
+    setMsg((msg?msg+' ':'')+'🌟 FEVER HIT！ '+sym+sym+sym+' −'+dmg+'ダメージ！');
+    const target=dmg>=30?q('phone'):q('reel-area');
+    const cls=dmg>=30?'shake-big':'shake';
+    target.classList.add(cls);
+    q('fv-flash').style.opacity=dmg>=30?'.6':'.35';
+    setTimeout(()=>{target.classList.remove(cls);q('fv-flash').style.opacity='0';},dmg>=30?500:350);
+  } else {
+    setMsg((msg?msg+' ':'')+'🎯 HIT！ '+sym+sym+sym+' −'+dmg+'ダメージ！');
+    q('reel-area').classList.add('shake');
+    setTimeout(()=>q('reel-area').classList.remove('shake'),300);
+  }
+}
+
+// ── フィーバー ──
+function doFever(){
+  if(inFever)return;
+  const sd=STAGES[stageIdx];
+  if(isRevivalFever){
+    // 復活フィーバーは固定3スピン保証
+    fvRemain=3;
+    isRevivalFever=false;
+  } else {
+    fvRemain=sd.spins.filter(sp=>sp.fv).length;
+    if(fvRemain<=0) fvRemain=3; // フォールバック
+  }
+  inFever=true; fvGauge=0; phase='idle';
+  q('fv-flash').style.opacity='.9';
+  const rays=q('fv-rays'); rays.classList.remove('burst'); void rays.offsetWidth; rays.classList.add('burst');
+  q('phone').classList.add('shake-big');
+  setTimeout(()=>{q('fv-flash').style.opacity='0';q('phone').classList.remove('shake-big');},500);
+  setTimeout(()=>{
+    q('reel-area').classList.add('fever-mode');
+    q('bg').classList.add('fever-bg');
+    q('fv-overlay').style.opacity='1';
+    buildStrips();
+    locked=false;
+    setLever('idle');
+  },500);
+  updateFeverUI();
+  updateFeverBtn();
+  updateFeverTimer();
+  setMsg('🔥 フィーバー！！ 神話図柄降臨！');
+  setPay(true);
+}
+
+function endFever(){
+  inFever=false; fvGauge=0;
+  phase='idle';
+  q('reel-area').classList.remove('fever-mode');
+  q('bg').classList.remove('fever-bg');
+  q('fv-overlay').style.opacity='0';
+  q('fv-timer').textContent='';
+  buildStrips();
+  updateFeverUI();
+  updateFeverBtn();
+  setPay(false);
+  setMsg('フィーバー終了...');
+  // フィーバー終了後、spinIdx が fv:true スピンを指したままだと
+  // handleClick の sp.fv ガードに引っかかって SPIN 不能になるため、
+  // 次の非fvスピン（またはspins末尾）までスキップする
+  const sd=STAGES[stageIdx];
+  while(spinIdx<sd.spins.length && sd.spins[spinIdx].fv){
+    spinIdx++;
+  }
+}
+
+function updateFeverTimer(){
+  q('fv-timer').textContent=inFever?('残 '+fvRemain+' spin'):'';
+}
+
+function setPay(fv){
+  if(fv){
+    q('paytbl').innerHTML=`
+      <div class="pi"><div class="pi-s">🌈</div><div class="pi-v">×45</div></div>
+      <div class="pi"><div class="pi-s">👁️</div><div class="pi-v">×35</div></div>
+      <div class="pi"><div class="pi-s">💫</div><div class="pi-v">×30</div></div>
+      <div class="pi"><div class="pi-s">🔱</div><div class="pi-v">×28</div></div>
+      <div class="pi"><div class="pi-s">⚡</div><div class="pi-v">×25</div></div>`;
+  } else {
+    q('paytbl').innerHTML=`
+      <div class="pi"><div class="pi-s">7️⃣</div><div class="pi-v">×15</div></div>
+      <div class="pi"><div class="pi-s">💎</div><div class="pi-v">×10</div></div>
+      <div class="pi"><div class="pi-s">🔮</div><div class="pi-v">×8</div></div>
+      <div class="pi"><div class="pi-s">⭐</div><div class="pi-v">×6</div></div>
+      <div class="pi"><div class="pi-s">📕</div><div class="pi-v">×4</div></div>`;
+  }
+}
+
+// ── HP・UI更新 ──
+function updateHP(){
+  q('hp-bar').style.width=(eHP/eMaxHP*100)+'%';
+  q('hp-txt').textContent='HP '+eHP+' / '+eMaxHP;
+}
+
+function updateFeverUI(){
+  const pct=Math.min(100,fvGauge);
+  const circ=276.5;
+  q('fv-ring').setAttribute('stroke-dashoffset',circ-circ*pct/100);
+  q('fv-pct').textContent=pct+'%';
+  const full=pct>=100;
+  q('fv-ring').setAttribute('stroke',full?'url(#ringGradFull)':'url(#ringGrad)');
+  q('fv-pct').style.color=full?'var(--gold)':'var(--magic-soft)';
+  q('fv-magic').classList.toggle('full',full&&!inFever);
+}
+
+function updateFeverBtn(){
+  q('fv-btn').style.display='none';
+  if(inFever) updateFeverTimer();
+}
+
+function setLever(state){
+  const btn=q('lever-btn');
+  if(state==='spinning'||state==='fever-spinning'){
+    btn.textContent='⏹ STOP 1';btn.className='spin-active';
+  } else if(state==='stop1'){
+    btn.textContent='⏹ STOP 2';btn.className='spin-active';
+  } else if(state==='stop2'){
+    btn.textContent='⏹ STOP 3';btn.className='spin-active';
+  } else if(state==='fever-ready'){
+    btn.textContent='🔥 FEVER SPIN!!';btn.className='fever-ready';
+  } else if(state==='disabled'){
+    btn.textContent='...';btn.className='disabled';
+  } else {
+    btn.textContent='🎰 SPIN!';btn.className='';
+  }
+}
+
+function setMsg(t){const m=q('msg-txt');m.textContent=t;
+  if(t){m.classList.remove('pop');void m.offsetWidth;m.classList.add('pop');}}
+
+// ── ステージ遷移・再起動 ──
+function showWin(){
+  if(stageIdx<STAGES.length-1){
+    q('mod-win-sub').innerHTML='St'+(stageIdx+1)+'クリア！次のステージへ<br>フィーバーゲージを引き継ぐ';
+    q('mod-win').classList.add('show');
+  } else {
+    q('mod-clear').classList.add('show');
+  }
+}
+
+function showLose(){
+  const sd=STAGES[stageIdx];
+  q('mod-lose-sub').innerHTML=sd.eName+' を倒せなかった...<br>もう一度挑戦しよう！';
+  q('mod-lose').classList.add('show');
+  // 0.5秒後に50%復活抽選（1ステージ1回限り）
+  if(!hasRevived) setTimeout(()=>tryRevival(), 500);
+}
+
+function goNextStage(){
+  q('mod-win').classList.remove('show');
+
+  let carry=Math.min(fvGauge,50);
+  if(hasSkill('fever_carry') && inFever){
+    feverCarryActive=true;
+    carry=100;
+  } else {
+    feverCarryActive=false;
+  }
+
+  stageIdx++;
+  loadStage(stageIdx,carry);
+}
+
+function restartAll(){
+  q('mod-clear').classList.remove('show');
+  q('mod-lose').classList.remove('show');
+  playerLv=1; playerExp=0; acquiredSkills=[];
+  feverCarryActive=false;
+  stageIdx=0; loadStage(0,0);
+}
+
+function loadStage(idx,carryFever){
+  const sd=STAGES[idx];
+  stageIdx=idx; spinIdx=0; locked=false; phase='idle';
+  inFever=false; fvRemain=0; isFeverActivating=false;
+  hasRevived=false;    // ステージ開始時に復活フラグをリセット
+  isRevivalFever=false; // 復活フィーバーフラグもリセット
+  currentFeverSym='🌈'; // フィーバー図柄リセット
+  pendingLvUp=false;   // 遅延Lvアップモーダルをキャンセル（SPINボタン詰まり防止）
+  eHP=sd.eHP; eMaxHP=sd.eHP;
+  fvGauge=Math.min(100,sd.fvStart+(carryFever||0));
+
+  q('stage-lbl').textContent=sd.lbl;
+  q('enemy-nm').textContent=sd.eName;
+  q('reel-area').classList.remove('fever-mode');
+  q('reel-area').classList.remove('fever-ready-mode');
+  q('bg').classList.remove('fever-bg');
+  q('fv-overlay').style.opacity='0';
+  q('fv-timer').textContent='';
+  q('freeze-overlay').classList.remove('active');
+  q('freeze-flash').style.opacity='0';
+  const fi=q('fever-incoming');
+  fi.classList.remove('show','hide');
+  setPay(false);
+  buildStrips();
+  updateHP();
+  updateFeverUI();
+  updateFeverBtn();
+  updateLvUI();
+  updateSkillUI();
+  setLever('idle');
+  setMsg(sd.hint);
+  updateSpinCounter();
+  updateEnemyShowcase();
+
+  // フィーバーキャリー発動：次ステージ開始直後にフィーバー状態へ
+  if(feverCarryActive && fvGauge>=100){
+    feverCarryActive=false;
+    locked=true;
+    setLever('disabled');
+    setTimeout(()=>{
+      setMsg('🌊 フィーバーキャリー！フィーバー継続！');
+      setTimeout(()=>doFever(),500);
+    },400);
+  }
+}
+
+// ── 初期化 ──
+window.addEventListener('load',()=>{
+  drawStars();
+  playerLv=1; playerExp=0; acquiredSkills=[];
+  feverCarryActive=false;
+  loadStage(0,0);
+});
+</script>
+</div>
+</body>
+</html>
