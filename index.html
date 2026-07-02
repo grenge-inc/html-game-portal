@@ -2,81 +2,385 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI伝説</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AI伝説 — みんなのゲームコーナー</title>
+<meta name="theme-color" content="#FAF6EC">
+<link rel="icon" href="icon_ai_legend.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=DotGothic16&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Helvetica Neue',system-ui,sans-serif;background:#f0f2ff;color:#1a1a2e;min-height:100vh;}
-header{padding:14px 20px;border-bottom:2px solid #dde2ff;display:flex;align-items:center;gap:12px;background:#fff;position:sticky;top:0;z-index:50;box-shadow:0 2px 12px rgba(80,80,200,0.08);}
-.header-icon{width:44px;height:44px;border-radius:12px;object-fit:cover;flex-shrink:0;box-shadow:0 2px 8px rgba(80,80,200,0.2);}
-.logo{font-size:22px;font-weight:900;background:linear-gradient(135deg,#5b6ef5,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-.01em;}
-.count-badge{font-size:12px;color:#7080c0;background:#f0f0ff;border:1px solid #dde0ff;border-radius:20px;padding:3px 12px;font-weight:600;margin-left:auto;}
-.search-wrap{padding:18px 20px 0;}
-.search-input{width:100%;max-width:520px;display:block;padding:11px 18px;font-size:15px;background:#fff;border:2px solid #dde0ff;border-radius:12px;color:#1a1a2e;outline:none;transition:border-color .2s,box-shadow .2s;}
-.search-input:focus{border-color:#5b6ef5;box-shadow:0 0 0 3px rgba(91,110,245,0.12);}
-.search-input::placeholder{color:#aab0d0;}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;padding:18px 20px 48px;}
-.card{background:#fff;border:2px solid #e4e8ff;border-radius:14px;padding:20px 14px 18px;cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;min-height:100px;animation:fadeIn .2s ease both;}
-.card:hover{transform:translateY(-3px);border-color:#5b6ef5;box-shadow:0 8px 24px rgba(91,110,245,0.18);}
-.card:active{transform:translateY(-1px);}
-.card-icon{font-size:34px;line-height:1;}
-.card-name{font-size:13.5px;font-weight:700;color:#1a1a2e;line-height:1.4;letter-spacing:-.01em;}
-.modal-bg{display:none;position:fixed;inset:0;background:rgba(10,10,30,.75);z-index:100;align-items:center;justify-content:center;padding:12px;backdrop-filter:blur(4px);}
-.modal-bg.open{display:flex;}
-.modal{background:#fff;border:2px solid #dde0ff;border-radius:18px;width:min(96vw,480px);height:min(92vh,900px);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.35);}
-.modal-head{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:2px solid #f0f0ff;flex-shrink:0;background:#fafbff;}
-.modal-title{flex:1;font-size:14px;font-weight:700;color:#1a1a2e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.btn-small{background:none;border:1.5px solid #dde0ff;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;color:#5b6ef5;text-decoration:none;display:inline-flex;align-items:center;gap:3px;font-weight:600;transition:background .15s;white-space:nowrap;}
-.btn-small:hover{background:#f0f0ff;}
-iframe{flex:1;border:none;width:100%;background:#000;}
-@keyframes fadeIn{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:none;}}
+:root{
+  --bg:#FAF6EC; --card:#FFFFFF; --ink:#2B2350; --mut:#7A729B; --line:#2B2350;
+  --red:#FF5D3A; --gold:#FFB92E; --sky:#57B6F2; --green:#43BE6E; --pink:#FF7BAC;
+  --shadow:4px 4px 0 var(--ink);
+  --shadow-sm:3px 3px 0 var(--ink);
+  --r:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'M PLUS Rounded 1c','Hiragino Sans',system-ui,sans-serif;
+  background:var(--bg); color:var(--ink); min-height:100vh; overflow-x:hidden;
+}
+body::before{
+  content:''; position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.5;
+  background-image:radial-gradient(rgba(87,182,242,.28) 1.5px, transparent 1.5px);
+  background-size:26px 26px;
+}
+::selection{background:rgba(255,185,46,.6)}
+button{font-family:inherit}
+img{display:block}
+.dot{font-family:'DotGothic16',monospace}
+
+/* ===== header ===== */
+header{
+  position:sticky; top:0; z-index:60;
+  display:flex; align-items:center; gap:12px;
+  padding:10px clamp(14px,3vw,28px);
+  background:rgba(250,246,236,.92); backdrop-filter:blur(10px);
+  border-bottom:2.5px solid var(--ink);
+}
+.hicon{width:42px;height:42px;border-radius:12px;object-fit:cover;border:2.5px solid var(--ink);box-shadow:2px 2px 0 var(--ink)}
+.logo{font-size:21px;font-weight:900;letter-spacing:.02em;white-space:nowrap;line-height:1.1}
+.logo small{font-family:'DotGothic16',monospace;font-size:10px;font-weight:400;color:var(--red);display:block;letter-spacing:.24em}
+.searchbox{flex:1;max-width:400px;margin-left:auto;position:relative}
+.searchbox svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--mut);fill:none;stroke-width:2.6;pointer-events:none}
+#q{
+  width:100%;padding:9px 14px 9px 37px;font-size:14px;font-weight:800;
+  background:var(--card);color:var(--ink);
+  border:2.5px solid var(--ink);border-radius:99px;outline:none;
+  box-shadow:var(--shadow-sm);transition:box-shadow .15s, transform .15s;
+}
+#q::placeholder{color:var(--mut);font-weight:600}
+#q:focus{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--sky)}
+.count{font-family:'DotGothic16',monospace;font-size:12px;color:var(--ink);background:var(--gold);border:2.5px solid var(--ink);border-radius:99px;padding:5px 13px;white-space:nowrap;box-shadow:var(--shadow-sm)}
+@media(max-width:560px){.count{display:none}}
+
+/* ===== hero ===== */
+.hero{
+  margin:clamp(16px,3vw,28px) clamp(14px,3vw,28px) 6px;
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:clamp(16px,4vw,44px);
+  background:
+    repeating-linear-gradient(-45deg, rgba(255,185,46,.13) 0 18px, transparent 18px 36px),
+    var(--card);
+  border:2.5px solid var(--ink);border-radius:24px;
+  box-shadow:6px 6px 0 var(--ink);
+  padding:clamp(18px,3.5vw,32px) clamp(18px,3.5vw,36px);
+  position:relative;
+}
+.hero-eyebrow{
+  display:inline-block;font-family:'DotGothic16',monospace;font-size:12px;letter-spacing:.18em;
+  color:#fff;background:var(--red);border:2px solid var(--ink);border-radius:8px;
+  padding:4px 12px;box-shadow:2px 2px 0 var(--ink);transform:rotate(-2deg);margin-bottom:14px;
+}
+.hero h1{font-size:clamp(22px,4vw,38px);font-weight:900;line-height:1.25;margin-bottom:6px}
+.hero p{font-size:13px;font-weight:800;color:var(--mut);margin-bottom:18px}
+.btn-play{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:15px;font-weight:900;color:#fff;letter-spacing:.05em;
+  background:var(--red);border:2.5px solid var(--ink);border-radius:14px;
+  padding:12px 28px;cursor:pointer;box-shadow:var(--shadow);
+  transition:transform .12s, box-shadow .12s;
+}
+.btn-play:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--ink)}
+.btn-play:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+.hero-shot-wrap{position:relative;z-index:1}
+.hero-shot{
+  width:clamp(120px,16vw,180px);aspect-ratio:39/62;object-fit:cover;
+  border:2.5px solid var(--ink);border-radius:16px;background:#fff;
+  box-shadow:5px 5px 0 var(--ink);transform:rotate(3deg);
+  cursor:pointer;transition:transform .2s;
+}
+.hero-shot:hover{transform:rotate(1deg) scale(1.03)}
+.hero-shot-wrap::after{
+  content:'PLAY!';font-family:'DotGothic16',monospace;font-size:11px;letter-spacing:.1em;
+  position:absolute;top:-10px;right:-14px;color:var(--ink);
+  background:var(--gold);border:2px solid var(--ink);border-radius:99px;padding:4px 10px;
+  box-shadow:2px 2px 0 var(--ink);transform:rotate(8deg);
+}
+@media(max-width:640px){.hero{grid-template-columns:1fr}.hero-shot-wrap{display:none}}
+
+/* ===== sections ===== */
+section{margin-top:clamp(22px,3.4vw,36px)}
+.sec-head{display:flex;align-items:center;gap:10px;padding:0 clamp(14px,3vw,28px);margin-bottom:13px}
+.sec-title{font-size:clamp(16px,2.4vw,20px);font-weight:900;display:flex;align-items:center;gap:8px}
+.sec-title::before{content:'';width:12px;height:12px;border:2.5px solid var(--ink);border-radius:4px;background:var(--sky);box-shadow:2px 2px 0 var(--ink)}
+#sec-fav .sec-title::before{background:var(--pink)}
+#sec-all .sec-title::before{background:var(--green)}
+.sec-sub{font-family:'DotGothic16',monospace;font-size:12px;color:var(--mut)}
+.row{
+  display:grid;grid-auto-flow:column;grid-auto-columns:clamp(128px,15vw,164px);
+  gap:14px;overflow-x:auto;padding:4px clamp(14px,3vw,28px) 16px;
+  scroll-snap-type:x proximity;scrollbar-width:thin;scrollbar-color:var(--ink) transparent;
+}
+.row .card{scroll-snap-align:start}
+
+/* ===== chips ===== */
+.chips{display:flex;gap:9px;overflow-x:auto;padding:4px clamp(14px,3vw,28px) 14px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  flex-shrink:0;font-size:12.5px;font-weight:900;color:var(--ink);
+  background:var(--card);border:2.5px solid var(--ink);border-radius:99px;
+  padding:7px 16px;cursor:pointer;box-shadow:var(--shadow-sm);
+  transition:transform .12s, box-shadow .12s, background .12s;
+}
+.chip:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+.chip.on{color:#fff;background:var(--red)}
+.chip:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+
+/* ===== grid ===== */
+.grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(128px,14vw,166px),1fr));
+  gap:16px;padding:4px clamp(14px,3vw,28px) 80px;
+}
+
+/* ===== card ===== */
+.card{
+  position:relative;border-radius:var(--r);cursor:pointer;outline:none;
+  background:var(--card);border:2.5px solid var(--ink);
+  box-shadow:var(--shadow);overflow:hidden;
+  transition:transform .15s, box-shadow .15s;
+  animation:up .3s ease both;
+}
+@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.card:hover,.card:focus-visible{transform:translate(-2px,-3px);box-shadow:7px 7px 0 var(--ink);z-index:2}
+.card:focus-visible{box-shadow:7px 7px 0 var(--sky)}
+.card:active{transform:translate(1px,1px);box-shadow:2px 2px 0 var(--ink)}
+.thumb-wrap{aspect-ratio:3/4;overflow:hidden;border-bottom:2.5px solid var(--ink);background:#EDE7F6}
+.thumb{width:100%;height:100%;object-fit:cover;object-position:center top;transition:transform .3s}
+.card:hover .thumb{transform:scale(1.06)}
+.card-body{padding:9px 10px 10px}
+.card-name{font-size:12.5px;font-weight:900;line-height:1.35;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.7em}
+.card-meta{display:flex;align-items:center;gap:6px;margin-top:5px;font-size:10px;font-weight:900}
+.tag{border:2px solid var(--ink);border-radius:7px;padding:1px 7px;background:var(--gold)}
+.tag[data-c="連鎖"]{background:var(--pink)}
+.tag[data-c="アクション"]{background:var(--red);color:#fff}
+.tag[data-c="パズル・ソート"]{background:var(--sky)}
+.tag[data-c="マージ・2048"]{background:var(--green);color:#fff}
+.plays{font-family:'DotGothic16',monospace;color:var(--mut);font-weight:400;font-size:10.5px}
+.fav-btn{
+  position:absolute;top:8px;right:8px;z-index:3;
+  width:30px;height:30px;border-radius:50%;cursor:pointer;
+  background:var(--card);border:2.5px solid var(--ink);
+  font-size:13px;line-height:1;color:#C9C2E0;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:2px 2px 0 var(--ink);
+  transition:transform .12s, color .12s, background .12s;
+}
+.fav-btn:hover{transform:scale(1.12)}
+.fav-btn.on{color:#fff;background:var(--pink)}
+.empty{padding:8px clamp(14px,3vw,28px) 20px;font-size:13px;font-weight:800;color:var(--mut)}
+
+/* ===== modal ===== */
+.modal-bg{
+  display:none;position:fixed;inset:0;z-index:100;
+  background:rgba(43,35,80,.55);backdrop-filter:blur(5px);
+  align-items:center;justify-content:center;padding:10px;
+}
+.modal-bg.open{display:flex}
+.modal{
+  width:min(96vw,470px);height:min(94vh,880px);
+  display:flex;flex-direction:column;overflow:hidden;
+  background:var(--card);border:2.5px solid var(--ink);border-radius:22px;
+  box-shadow:8px 8px 0 var(--ink);
+  animation:pop .2s cubic-bezier(.2,.9,.3,1.25) both;
+}
+@keyframes pop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+.modal-head{
+  display:flex;align-items:center;gap:6px;flex-shrink:0;
+  padding:9px 12px;background:var(--bg);border-bottom:2.5px solid var(--ink);
+}
+.modal-title{flex:1;font-size:13.5px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mbtn{
+  background:var(--card);border:2px solid var(--ink);border-radius:10px;
+  color:var(--ink);font-size:12px;font-weight:900;cursor:pointer;
+  padding:6px 10px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;
+  box-shadow:2px 2px 0 var(--ink);transition:transform .1s, box-shadow .1s;white-space:nowrap;
+}
+.mbtn:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--ink)}
+.mbtn:active{transform:translate(1px,1px);box-shadow:0 0 0 var(--ink)}
+.mbtn.fav.on{background:var(--pink);color:#fff}
+iframe{flex:1;border:none;width:100%;background:#000}
+
+footer{padding:28px;text-align:center;font-family:'DotGothic16',monospace;font-size:12px;color:var(--mut)}
+
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
 </style>
 </head>
 <body>
+
 <header>
-  <img class="header-icon" src="icon_ai_legend.png" alt="AI伝説">
-  <div class="logo">AI伝説</div>
-  <span class="count-badge" id="cnt">44 games</span>
+  <img class="hicon" src="icon_ai_legend.png" alt="">
+  <div class="logo">AI伝説<small>GAME CORNER</small></div>
+  <div class="searchbox">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+    <input id="q" type="search" placeholder="ゲームを検索…" autocomplete="off">
+  </div>
+  <span class="count" id="cnt"></span>
 </header>
-<div class="search-wrap">
-  <input class="search-input" id="q" type="text" placeholder="ゲームを検索…" oninput="filter()" autocomplete="off">
-</div>
-<div class="grid" id="grid"></div>
-<div class="modal-bg" id="mb" onclick="closeBG(event)">
-  <div class="modal">
+
+<div class="hero" id="hero"></div>
+
+<section id="sec-recent" hidden>
+  <div class="sec-head"><div class="sec-title">最近プレイした</div></div>
+  <div class="row" id="row-recent"></div>
+</section>
+
+<section id="sec-fav" hidden>
+  <div class="sec-head"><div class="sec-title">お気に入り</div></div>
+  <div class="row" id="row-fav"></div>
+</section>
+
+<section id="sec-all">
+  <div class="sec-head">
+    <div class="sec-title">すべてのゲーム</div>
+    <div class="sec-sub" id="gridcnt"></div>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="grid" id="grid"></div>
+</section>
+
+<footer>AI DENSETSU — 社内AIゲームコンテスト作品集</footer>
+
+<div class="modal-bg" id="mb">
+  <div class="modal" role="dialog" aria-modal="true">
     <div class="modal-head">
       <span class="modal-title" id="mt"></span>
-      <a class="btn-small" id="ml" href="#" target="_blank">↗ 別タブ</a>
-      <button class="btn-small" onclick="closeModal()">✕ 閉じる</button>
+      <button class="mbtn fav" id="mfav" title="お気に入り">♥</button>
+      <button class="mbtn" id="mre" title="リスタート">↻</button>
+      <a class="mbtn" id="ml" href="#" target="_blank" title="別タブで開く">↗</a>
+      <button class="mbtn" id="mc">✕</button>
     </div>
     <iframe id="gf" src="" allow="autoplay"></iframe>
   </div>
 </div>
+
 <script>
-const BASE='games/';
-const GAMES=[{"name": "Arrow Sort Frozen Chain", "file": "Arrow Sort Frozen Chain.html"}, {"name": "Arrow Sort Mirror Path", "file": "Arrow Sort Mirror Path.html"}, {"name": "Drop 2048（ぽとぽと合体）", "file": "Drop 2048（ぽとぽと合体）.html"}, {"name": "★バースト連鎖リバーシ", "file": "★バースト連鎖リバーシ.html"}, {"name": "おとマシン", "file": "おとマシン.html"}, {"name": "カタカナしりとりソリティア", "file": "カタカナしりとりソリティア.html"}, {"name": "カラーホールドトラップ", "file": "カラーホールドトラップ.html"}, {"name": "カーサバイバー", "file": "カーサバイバー（Car Survivor）.html"}, {"name": "クリスタルソーター", "file": "クリスタルソーター.html"}, {"name": "クリスタルレゾナンス", "file": "クリスタルレゾナンス（Crystal Resonance）.html"}, {"name": "グラビティスマッシュ", "file": "グラビティスマッシュ (GravitySmash).html"}, {"name": "グラビティ・テンウェル", "file": "グラビティ・テンウェル.html"}, {"name": "コンボシュート", "file": "コンボシュート.html"}, {"name": "ダイスチャージ・ダンジョン", "file": "ダイスチャージ・ダンジョン.html"}, {"name": "チェーンパンチ道場", "file": "チェーンパンチ道場.html"}, {"name": "チャージ一閃", "file": "チャージ一閃.html"}, {"name": "トリックライン・ワンスワイプ", "file": "トリックライン・ワンスワイプ.html"}, {"name": "トレジャー・ロール", "file": "トレジャー・ロール（Treasure Roll）.html"}, {"name": "ドラッグ・マージライン", "file": "ドラッグ・マージライン（Drag Merge Line）.html"}, {"name": "ネオン・ワンショット崩落", "file": "ネオン・ワンショット崩落（NeonOneShotCollapse）.html"}, {"name": "マージファンタジー2D", "file": "マージファンタジー2D.html"}, {"name": "リズムタップ・フリック", "file": "リズムタップ・フリック.html"}, {"name": "リール・オブ・マジック", "file": "リール・オブ・マジック.html"}, {"name": "ワープ連鎖ソート", "file": "ワープ連鎖ソート.html"}, {"name": "元素連鎖反応", "file": "元素連鎖反応（Element Chain Reaction）.html"}, {"name": "崩落ドミノ連鎖", "file": "崩落ドミノ連鎖.html"}, {"name": "恐竜卵ソート", "file": "恐竜卵ソート（孵化演出）.html"}, {"name": "方向連鎖パズル", "file": "方向連鎖パズル.html"}, {"name": "氷滑りソート", "file": "氷滑りソート.html"}, {"name": "灯台の光集約", "file": "灯台の光集約（Lighthouse Convergence）.html"}, {"name": "炎の連鎖滝", "file": "炎の連鎖滝（FlameChainFalls）.html"}, {"name": "矢印スタックパズル", "file": "矢印スタックパズル.html"}, {"name": "矢印ドミノ", "file": "矢印ドミノ.html"}, {"name": "破裂で飛ばす", "file": "破裂で飛ばす.html"}, {"name": "磁力4方向4連", "file": "磁力4方向4連.html"}, {"name": "磁力ホバー", "file": "磁力ホバー（Magnetic Hover 2048）.html"}, {"name": "紐引きアローソート", "file": "紐引きアローソート.html"}, {"name": "紐引きチェーンパズル", "file": "紐引きチェーンパズル（ChainArrow）.html"}, {"name": "花火大輪", "file": "花火大輪（HanabiBloom）.html"}, {"name": "連鎖割り雪崩", "file": "連鎖割り雪崩（Chain Pop Avalanche）.html"}, {"name": "連鎖暴走方程式", "file": "連鎖暴走方程式.html"}, {"name": "連鎖落とし4目ローグ", "file": "連鎖落とし4目ローグ（チェイン・ドロップ・ローグ）.html"}, {"name": "配線タワーディフェンス", "file": "配線タワーディフェンス.html"}, {"name": "重力ルートクラッシュ", "file": "重力ルートクラッシュ.html"}];
-const EMOJI={'ソート':'🔀','ソーター':'🔀','パズル':'🧩','連鎖':'⛓️','ダンジョン':'⚔️','リバーシ':'♟️','2048':'🔢','ホバー':'🧲','サバイバー':'🚗','道場':'🥊','花火':'🎆','矢印':'➡️','方程式':'🧮','チャージ':'⚡','ソリティア':'🃏','スマッシュ':'💥','タワー':'🏗️','ロール':'🎲','崩落':'💀','滝':'🌊','雪崩':'❄️','卵':'🥚','磁力':'🧲','紐':'🧵','灯台':'🗼','重力':'⬇️','ドミノ':'🎯','マシン':'🎵','コンボ':'⚽','ライン':'📏','クリスタル':'💎','ファンタジー':'🌟','マジック':'✨','マージ':'🔀','リール':'🎰','リズム':'🎵','Arrow':'➡️','Drop':'⬇️','Frozen':'❄️','Mirror':'🪞'};
-function getEmoji(n){for(const[k,v]of Object.entries(EMOJI))if(n.includes(k))return v;return'🎮';}
-let shown=[...GAMES];
-function openGame(g){const u=BASE+encodeURIComponent(g.file);document.getElementById('mt').textContent=g.name;document.getElementById('gf').src=u;document.getElementById('ml').href=u;document.getElementById('mb').classList.add('open');}
-function closeModal(){document.getElementById('mb').classList.remove('open');document.getElementById('gf').src='';}
-function closeBG(e){if(e.target===document.getElementById('mb'))closeModal();}
-function filter(){const q=document.getElementById('q').value.toLowerCase();shown=q?GAMES.filter(g=>g.name.toLowerCase().includes(q)):[...GAMES];render();}
-function render(){
-  document.getElementById('cnt').textContent=shown.length+' games';
-  const grid=document.getElementById('grid');
-  grid.innerHTML='';
-  shown.forEach((g,i)=>{
-    const c=document.createElement('div');
-    c.className='card';
-    c.style.animationDelay=(i*0.015)+'s';
-    c.innerHTML=`<div class="card-icon">${getEmoji(g.name)}</div><div class="card-name">${g.name}</div>`;
-    c.onclick=()=>openGame(g);
-    grid.appendChild(c);
+const BASE='games/', TBASE='thumbs/';
+const GAMES=[{"n":"Arrow Sort Frozen Chain","f":"Arrow Sort Frozen Chain.html","t":"g01.webp","c":"パズル・ソート"},{"n":"Arrow Sort Mirror Path","f":"Arrow Sort Mirror Path.html","t":"g02.webp","c":"パズル・ソート"},{"n":"Drop 2048（ぽとぽと合体）","f":"Drop 2048（ぽとぽと合体）.html","t":"g03.webp","c":"マージ・2048"},{"n":"★バースト連鎖リバーシ","f":"★バースト連鎖リバーシ.html","t":"g04.webp","c":"パズル・ソート"},{"n":"おとマシン","f":"おとマシン.html","t":"g05.webp","c":"その他"},{"n":"カタカナしりとりソリティア","f":"カタカナしりとりソリティア.html","t":"g06.webp","c":"パズル・ソート"},{"n":"カラーホールドトラップ","f":"カラーホールドトラップ.html","t":"g07.webp","c":"その他"},{"n":"カーサバイバー","f":"カーサバイバー（Car Survivor）.html","t":"g08.webp","c":"アクション"},{"n":"クリスタルソーター","f":"クリスタルソーター.html","t":"g09.webp","c":"パズル・ソート"},{"n":"クリスタルレゾナンス","f":"クリスタルレゾナンス（Crystal Resonance）.html","t":"g10.webp","c":"その他"},{"n":"グラビティスマッシュ","f":"グラビティスマッシュ (GravitySmash).html","t":"g11.webp","c":"アクション"},{"n":"グラビティ・テンウェル","f":"グラビティ・テンウェル.html","t":"g12.webp","c":"その他"},{"n":"コンボシュート","f":"コンボシュート.html","t":"g13.webp","c":"アクション"},{"n":"ダイスチャージ・ダンジョン","f":"ダイスチャージ・ダンジョン.html","t":"g14.webp","c":"アクション"},{"n":"チェーンパンチ道場","f":"チェーンパンチ道場.html","t":"g15.webp","c":"連鎖"},{"n":"チャージ一閃","f":"チャージ一閃.html","t":"g16.webp","c":"アクション"},{"n":"トリックライン・ワンスワイプ","f":"トリックライン・ワンスワイプ.html","t":"g17.webp","c":"その他"},{"n":"トレジャー・ロール","f":"トレジャー・ロール（Treasure Roll）.html","t":"g18.webp","c":"その他"},{"n":"ドラッグ・マージライン","f":"ドラッグ・マージライン（Drag Merge Line）.html","t":"g19.webp","c":"マージ・2048"},{"n":"ネオン・ワンショット崩落","f":"ネオン・ワンショット崩落（NeonOneShotCollapse）.html","t":"g20.webp","c":"連鎖"},{"n":"マージファンタジー2D","f":"マージファンタジー2D.html","t":"g21.webp","c":"マージ・2048"},{"n":"リズムタップ・フリック","f":"リズムタップ・フリック.html","t":"g22.webp","c":"アクション"},{"n":"リール・オブ・マジック","f":"リール・オブ・マジック.html","t":"g23.webp","c":"その他"},{"n":"ワープ連鎖ソート","f":"ワープ連鎖ソート.html","t":"g24.webp","c":"パズル・ソート"},{"n":"元素連鎖反応","f":"元素連鎖反応（Element Chain Reaction）.html","t":"g25.webp","c":"連鎖"},{"n":"崩落ドミノ連鎖","f":"崩落ドミノ連鎖.html","t":"g26.webp","c":"連鎖"},{"n":"恐竜卵ソート","f":"恐竜卵ソート（孵化演出）.html","t":"g27.webp","c":"パズル・ソート"},{"n":"方向連鎖パズル","f":"方向連鎖パズル.html","t":"g28.webp","c":"パズル・ソート"},{"n":"氷滑りソート","f":"氷滑りソート.html","t":"g29.webp","c":"パズル・ソート"},{"n":"灯台の光集約","f":"灯台の光集約（Lighthouse Convergence）.html","t":"g30.webp","c":"その他"},{"n":"炎の連鎖滝","f":"炎の連鎖滝（FlameChainFalls）.html","t":"g31.webp","c":"連鎖"},{"n":"矢印スタックパズル","f":"矢印スタックパズル.html","t":"g32.webp","c":"パズル・ソート"},{"n":"矢印ドミノ","f":"矢印ドミノ.html","t":"g33.webp","c":"パズル・ソート"},{"n":"破裂で飛ばす","f":"破裂で飛ばす.html","t":"g34.webp","c":"アクション"},{"n":"磁力4方向4連","f":"磁力4方向4連.html","t":"g35.webp","c":"その他"},{"n":"磁力ホバー","f":"磁力ホバー（Magnetic Hover 2048）.html","t":"g36.webp","c":"マージ・2048"},{"n":"紐引きアローソート","f":"紐引きアローソート.html","t":"g37.webp","c":"パズル・ソート"},{"n":"紐引きチェーンパズル","f":"紐引きチェーンパズル（ChainArrow）.html","t":"g38.webp","c":"パズル・ソート"},{"n":"花火大輪","f":"花火大輪（HanabiBloom）.html","t":"g39.webp","c":"その他"},{"n":"連鎖割り雪崩","f":"連鎖割り雪崩（Chain Pop Avalanche）.html","t":"g40.webp","c":"連鎖"},{"n":"連鎖暴走方程式","f":"連鎖暴走方程式.html","t":"g41.webp","c":"パズル・ソート"},{"n":"連鎖落とし4目ローグ","f":"連鎖落とし4目ローグ（チェイン・ドロップ・ローグ）.html","t":"g42.webp","c":"連鎖"},{"n":"配線タワーディフェンス","f":"配線タワーディフェンス.html","t":"g43.webp","c":"アクション"},{"n":"重力ルートクラッシュ","f":"重力ルートクラッシュ.html","t":"g44.webp","c":"アクション"}];
+/* ---------- state (localStorage) ---------- */
+const LS={favs:'ai_legend_favs',plays:'ai_legend_plays',recent:'ai_legend_recent'};
+const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+let favs=new Set(load(LS.favs,[]));
+let plays=load(LS.plays,{});
+let recent=load(LS.recent,[]);
+
+const CATS=['すべて','連鎖','アクション','パズル・ソート','マージ・2048','その他'];
+let curCat='すべて', curQ='';
+let current=null;
+
+const $=id=>document.getElementById(id);
+function dailyPick(){
+  const d=new Date(), seed=d.getFullYear()*372+(d.getMonth()+1)*31+d.getDate();
+  return seed%GAMES.length;
+}
+const fmtPlays=n=>n>=1000?(n/1000).toFixed(1)+'k':String(n);
+
+/* ---------- card ---------- */
+function makeCard(idx,delay){
+  const g=GAMES[idx];
+  const c=document.createElement('div');
+  c.className='card'; c.tabIndex=0;
+  c.style.animationDelay=(Math.min(delay,20)*0.02)+'s';
+  const p=plays[g.f]||0;
+  c.innerHTML=`
+    <button class="fav-btn ${favs.has(g.f)?'on':''}" aria-label="お気に入り">♥</button>
+    <div class="thumb-wrap"><img class="thumb" loading="lazy" src="${TBASE+g.t}" alt=""></div>
+    <div class="card-body">
+      <div class="card-name">${g.n}</div>
+      <div class="card-meta"><span class="tag" data-c="${g.c}">${g.c}</span>${p?`<span class="plays">▶${fmtPlays(p)}</span>`:''}</div>
+    </div>`;
+  c.querySelector('.fav-btn').onclick=e=>{e.stopPropagation();toggleFav(g.f)};
+  const open=()=>openGame(idx);
+  c.onclick=open;
+  c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open()}};
+  return c;
+}
+
+/* ---------- render ---------- */
+function renderHero(){
+  const idx=dailyPick(), g=GAMES[idx];
+  $('hero').innerHTML=`
+    <div>
+      <span class="hero-eyebrow">きょうのイチオシ</span>
+      <h1>${g.n}</h1>
+      <p>${g.c}ジャンル ／ 毎日1本を日替わりでピックアップ</p>
+      <button class="btn-play" id="heroplay">▶ あそぶ</button>
+    </div>
+    <div class="hero-shot-wrap"><img class="hero-shot" src="${TBASE+g.t}" alt="" id="heroshot"></div>`;
+  $('heroplay').onclick=()=>openGame(idx);
+  $('heroshot').onclick=()=>openGame(idx);
+}
+function renderChips(){
+  $('chips').innerHTML='';
+  CATS.forEach(cat=>{
+    const b=document.createElement('button');
+    b.className='chip'+(cat===curCat?' on':'');
+    b.textContent=cat;
+    b.onclick=()=>{curCat=cat;renderChips();renderGrid()};
+    $('chips').appendChild(b);
   });
 }
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
-render();
+function renderGrid(){
+  const grid=$('grid'); grid.innerHTML='';
+  let list=GAMES.map((g,i)=>i);
+  if(curCat!=='すべて')list=list.filter(i=>GAMES[i].c===curCat);
+  if(curQ)list=list.filter(i=>GAMES[i].n.toLowerCase().includes(curQ)||GAMES[i].c.toLowerCase().includes(curQ));
+  $('gridcnt').textContent=list.length+' GAMES';
+  if(!list.length){grid.innerHTML='<div class="empty">見つかりませんでした。別のキーワードで検索してみてください。</div>';return}
+  list.forEach((idx,k)=>grid.appendChild(makeCard(idx,k)));
+}
+function renderRows(){
+  const rIdx=recent.map(f=>GAMES.findIndex(g=>g.f===f)).filter(i=>i>=0);
+  $('sec-recent').hidden=!rIdx.length;
+  const rr=$('row-recent'); rr.innerHTML='';
+  rIdx.slice(0,12).forEach((i,k)=>rr.appendChild(makeCard(i,k)));
+  const fIdx=GAMES.map((g,i)=>i).filter(i=>favs.has(GAMES[i].f));
+  $('sec-fav').hidden=!fIdx.length;
+  const rf=$('row-fav'); rf.innerHTML='';
+  fIdx.forEach((i,k)=>rf.appendChild(makeCard(i,k)));
+}
+function renderAll(){renderRows();renderGrid();$('cnt').textContent=GAMES.length+' GAMES'}
+
+/* ---------- actions ---------- */
+function toggleFav(f){
+  favs.has(f)?favs.delete(f):favs.add(f);
+  save(LS.favs,[...favs]);
+  renderAll(); syncModalFav();
+}
+function syncModalFav(){
+  if(current==null)return;
+  $('mfav').classList.toggle('on',favs.has(GAMES[current].f));
+}
+function openGame(idx){
+  const g=GAMES[idx]; current=idx;
+  const u=BASE+encodeURIComponent(g.f);
+  $('mt').textContent=g.n;
+  $('gf').src=u; $('ml').href=u;
+  syncModalFav();
+  $('mb').classList.add('open');
+  document.body.style.overflow='hidden';
+  plays[g.f]=(plays[g.f]||0)+1; save(LS.plays,plays);
+  recent=[g.f,...recent.filter(x=>x!==g.f)].slice(0,12); save(LS.recent,recent);
+}
+function closeModal(){
+  $('mb').classList.remove('open');
+  $('gf').src=''; current=null;
+  document.body.style.overflow='';
+  renderAll();
+}
+$('mc').onclick=closeModal;
+$('mre').onclick=()=>{const s=$('gf').src;$('gf').src='';requestAnimationFrame(()=>$('gf').src=s)};
+$('mfav').onclick=()=>{if(current!=null)toggleFav(GAMES[current].f)};
+$('mb').onclick=e=>{if(e.target===$('mb'))closeModal()};
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+$('q').addEventListener('input',e=>{curQ=e.target.value.trim().toLowerCase();renderGrid()});
+
+renderHero(); renderChips(); renderAll();
 </script>
 </body>
 </html>
